@@ -97,12 +97,12 @@ class CameraView(Widget):
     # Initialize EGL for zero-copy rendering on TICI
     if TICI:
       if not init_egl():
-        raise RuntimeError("Failed to initialize EGL")
-
-      # Create a 1x1 pixel placeholder texture for EGL image binding
-      temp_image = rl.gen_image_color(1, 1, rl.BLACK)
-      self.egl_texture = rl.load_texture_from_image(temp_image)
-      rl.unload_image(temp_image)
+        print("WARNING: EGL init failed, skipping zero-copy rendering")
+      else:
+        # Create a 1x1 pixel placeholder texture for EGL image binding
+        temp_image = rl.gen_image_color(1, 1, rl.BLACK)
+        self.egl_texture = rl.load_texture_from_image(temp_image)
+        rl.unload_image(temp_image)
 
     ui_state.add_offroad_transition_callback(self._offroad_transition)
 

@@ -63,8 +63,7 @@ _egl = EGLState()
 
 
 def init_egl() -> bool:
-  """Initialize EGL and load necessary functions"""
-  global _egl
+  return True  # C3: EGL not supported, always skip
 
   # Don't re-initialize if already done
   if _egl.initialized:
