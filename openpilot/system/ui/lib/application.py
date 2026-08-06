@@ -147,6 +147,7 @@ class MouseState:
     self._lock = threading.Lock()
     self._exit_event = threading.Event()
     self._thread = None
+    self._evdev = None  # optional direct-evdev touch backend (bypasses weston)
 
   def get_events(self) -> list[MouseEvent]:
     with self._lock:
@@ -162,14 +163,41 @@ class MouseState:
 
   def stop(self):
     self._exit_event.set()
+    if self._evdev is not None:
+      self._evdev.stop()
     if self._thread is not None and self._thread.is_alive():
       self._thread.join()
+
+  def attach_evdev(self, backend) -> None:
+    self._evdev = backend
 
   def _run_thread(self):
     while not self._exit_event.is_set():
       rl.poll_input_events()
-      self._handle_mouse_event()
+      if self._evdev is not None:
+        self._handle_evdev_events()
+      else:
+        self._handle_mouse_event()
       self._rk.keep_time()
+
+  def _handle_evdev_events(self):
+    # direct evdev backend: positions are already in logical display coords
+    for slot, x, y, down in self._evdev.poll():
+      prev = self._prev_mouse_event[slot]
+      prev_down = prev.left_down if prev is not None else False
+      ev = MouseEvent(
+        MousePos(x, y),
+        slot,
+        down and not prev_down,
+        (not down) and prev_down,
+        down,
+        time.monotonic(),
+      )
+      # Only add changes
+      if prev is None or ev[:-1] != prev[:-1]:
+        with self._lock:
+          self._events.append(ev)
+        self._prev_mouse_event[slot] = ev
 
   def _handle_mouse_event(self):
     # TODO: read touch events from evdev directly to get real kernel timestamps.
@@ -231,6 +259,9 @@ class GuiApplication(GuiApplicationExt):
     self._nav_stack_widgets_to_render = 1 if self.big_ui() else 2
 
     self._mouse = MouseState(self._scale)
+    if not PC:
+      from openpilot.system.ui.lib.evdev_touch import EvdevTouch
+      self._mouse.attach_evdev(EvdevTouch.from_env(self._width, self._height, MAX_TOUCH_SLOTS))
     self._mouse_events: list[MouseEvent] = []
     self._last_mouse_event: MouseEvent = MouseEvent(MousePos(0, 0), 0, False, False, False, 0.0)
 
