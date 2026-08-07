@@ -319,6 +319,7 @@ qt_flags = [
   "-DQT_GUI_LIB",
   "-DQT_CORE_LIB",
   "-DQT_MESSAGELOGCONTEXT",
+  "-DSUNNYPILOT",
   "-Wno-deprecated-declarations",
 ]
 qt_env['CXXFLAGS'] += qt_flags
