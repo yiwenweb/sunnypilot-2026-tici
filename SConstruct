@@ -321,11 +321,15 @@ qt_flags = [
   "-DQT_MESSAGELOGCONTEXT",
   "-DSUNNYPILOT",
   "-Wno-deprecated-declarations",
-  "-Wno-unused-const-variable",
-  "-Wno-unused-variable",
-  "-Wno-unused-parameter",
-  "-Wno-unused-function",
-  "-Wno-unused-private-field",
+  # Downgrade specific "-Wunused" warnings from error to warning for Qt UI
+  # (sp2025-gf originals sometimes have unused constants; C3 clang is stricter than CI)
+  "-Wno-error=unused-const-variable",
+  "-Wno-error=unused-variable",
+  "-Wno-error=unused-parameter",
+  "-Wno-error=unused-function",
+  "-Wno-error=unused-private-field",
+  "-Wno-error=unused-but-set-variable",
+  "-Wno-error=unused-lambda-capture",
 ]
 qt_env['CXXFLAGS'] += qt_flags
 qt_env['LIBPATH'] += ['#openpilot/selfdrive/ui', ]
