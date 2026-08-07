@@ -321,6 +321,11 @@ qt_flags = [
   "-DQT_MESSAGELOGCONTEXT",
   "-DSUNNYPILOT",
   "-Wno-deprecated-declarations",
+  "-Wno-unused-const-variable",
+  "-Wno-unused-variable",
+  "-Wno-unused-parameter",
+  "-Wno-unused-function",
+  "-Wno-unused-private-field",
 ]
 qt_env['CXXFLAGS'] += qt_flags
 qt_env['LIBPATH'] += ['#openpilot/selfdrive/ui', ]
