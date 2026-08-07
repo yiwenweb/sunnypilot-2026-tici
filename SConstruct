@@ -150,6 +150,7 @@ env = Environment(
     "#rednose_repo",         # #include "rednose/..."
     "#rednose_repo/rednose", # #include "logger/..." (rednose package root)
     "#openpilot/cereal/gen/cpp",
+    "#third_party/linux/include",  # vendored linux/ion.h, msm_ion.h etc. for larch64
     acados_include_dirs,
     [x.INCLUDE_DIR for x in pkgs],
     "#",
