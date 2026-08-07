@@ -102,3 +102,17 @@ SKILL.md
 !.idea/customTargets.xml
 !.idea/tools/*
 !.run/*
+# Qt UI build artifacts
+openpilot/selfdrive/ui/*.o
+openpilot/selfdrive/ui/qt/**/*.o
+openpilot/selfdrive/ui/sunnypilot/**/*.o
+moc_*.cc
+openpilot/selfdrive/ui/ui
+openpilot/selfdrive/ui/*.qm
+openpilot/selfdrive/ui/assets.cc
+# Private keys
+**/id_rsa
+**/*.ppk
+# Scratch
+zz.txt
+stub_pkgs/
