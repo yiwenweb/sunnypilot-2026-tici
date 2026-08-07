@@ -135,7 +135,7 @@ procs = [
   # Qt UI — native binary built from openpilot/selfdrive/ui/SConscript
   # Replaces the Python/raylib UI. 2026 raylib UI (ui.py) is kept in source
   # but not started, so Qt and raylib never run simultaneously.
-  NativeProcess("ui", "openpilot/selfdrive/ui", ["./ui"], always_run, restart_if_crash=True),
+  NativeProcess("ui", "openpilot/selfdrive/ui", ["./ui"], always_run),
 
   # 2026 Python/raylib UI disabled — target C3 firmware cannot run raylib.
   # Kept in source for fallback; never started by manager.
