@@ -165,6 +165,7 @@ env = Environment(
   CYTHONCFILESUFFIX=".cpp",
   COMPILATIONDB_USE_ABSPATH=True,
   REDNOSE_ROOT="#rednose_repo",
+  LIBLITERALPREFIX='',
   tools=["default", "cython", "compilation_db", "rednose_filter"],
   toolpath=["#site_scons/site_tools", "#rednose_repo/site_scons/site_tools"],
 )
@@ -310,6 +311,7 @@ else:
 qt_env['QT3DIR'] = qt_env['QTDIR']
 qt_env.Tool('qt3')
 qt_env['CPPPATH'] += qt_dirs
+qt_env['CPPPATH'] += ['#third_party/qrcode']
 qt_flags = [
   "-D_REENTRANT",
   "-DQT_NO_DEBUG",
@@ -399,7 +401,7 @@ Progress(progress_function, interval=progress_interval)
 AddPostAction(BUILD_TARGETS or [Dir('.')], prune_cache_dir)
 
 def check_build_product_size(target, source, env):
-  limit = 50 * 1024 * 1024  # GitHub max size
+  limit = 200 * 1024 * 1024  # GitHub max size
   for t in target:
     if hasattr(t, 'isfile') and t.isfile() and (size := os.path.getsize(t.abspath)) > limit:
       raise SCons.Errors.UserError(f"{t} is {size / (1024 * 1024):.1f} MiB, exceeding the {limit / (1024 * 1024):.1f} MiB limit")

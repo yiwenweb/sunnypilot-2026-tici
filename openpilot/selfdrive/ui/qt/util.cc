@@ -121,7 +121,14 @@ void initApp(int argc, char *argv[], bool disable_hidpi) {
     qputenv("QT_SCALE_FACTOR", QString::number(1.0 / tmp.devicePixelRatio()).toLocal8Bit());
   }
 #else
-  app_dir = QFileInfo(util::readlink("/proc/self/exe").c_str()).path();
+  // Try /proc/self/exe first, fall back to Qt's own path resolution
+  QString exe_path = QFileInfo(util::readlink("/proc/self/exe").c_str()).path();
+  if (exe_path.isEmpty()) {
+    // /proc/self/exe may fail on WSL /mnt/c/ mounts; use Qt fallback
+    QApplication tmp(argc, argv);
+    exe_path = QCoreApplication::applicationDirPath();
+  }
+  app_dir = exe_path;
 #endif
 
   qputenv("QT_DBL_CLICK_DIST", QByteArray::number(150));

@@ -70,7 +70,7 @@ qt_env.Depends(assets, Glob('#openpilot/selfdrive/assets/*', exclude=[assets, as
 asset_obj = qt_env.Object("assets", assets)
 
 # build main UI
-qt_env.Program("ui", qt_src + [asset_obj], LIBS=qt_libs)
+qt_env.Program("ui", qt_src + [asset_obj, "#third_party/qrcode/QrCode.cc"], LIBS=qt_libs)
 
 if GetOption('extras'):
   # build installers (raylib)
