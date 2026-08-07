@@ -51,35 +51,37 @@ with open(File("#openpilot/selfdrive/ui/translations/languages.json").abspath) a
 translation_sources = [f"#openpilot/selfdrive/ui/translations/{l}.ts" for l in languages.values()]
 translation_targets = [src.replace(".ts", ".qm") for src in translation_sources]
 
-# Detect whether a working lrelease is available. Fall back to generating
-# empty .qm stubs (Qt tolerates missing translations, falls back to English).
-def _find_lrelease():
-  # 1. Vendored (comma CI): third_party/qt5/larch64/bin/lrelease
+# Actually test lrelease by running it. C3 systems commonly have /usr/bin/lrelease
+# as a stub that forwards to a missing /usr/lib/qt5/bin/lrelease and fails at runtime.
+def _lrelease_works():
+  import subprocess
+  # Try vendored first (comma CI on larch64)
   vendored = File("#third_party/qt5/larch64/bin/lrelease").abspath
-  if os.path.exists(vendored) and os.access(vendored, os.X_OK):
-    return vendored
-  # 2. System lrelease resolved from PATH — but many C3 systems have a stub
-  #    /usr/bin/lrelease that forwards to a missing /usr/lib/qt5/bin/lrelease.
-  #    So we check the *forwarded* binary explicitly.
-  for cand in ("/usr/lib/qt5/bin/lrelease", "/usr/lib/aarch64-linux-gnu/qt5/bin/lrelease"):
-    if os.path.exists(cand) and os.access(cand, os.X_OK):
-      return cand
-  # 3. Try `which lrelease` as a last resort. Only accept if it's executable
-  #    and NOT the known-broken stub.
-  from shutil import which
-  found = which("lrelease")
-  if found and os.path.realpath(found) != "/usr/bin/lrelease":
-    return found
+  candidates = [vendored, "/usr/lib/qt5/bin/lrelease", "/usr/bin/lrelease"]
+  for c in candidates:
+    if not (os.path.exists(c) and os.access(c, os.X_OK)):
+      continue
+    try:
+      # -help exits 0 if lrelease actually works, non-zero if the wrapper stub is broken
+      r = subprocess.run([c, "-help"], capture_output=True, timeout=5)
+      if r.returncode == 0:
+        return c
+    except Exception:
+      continue
   return None
 
-_lrelease_bin = _find_lrelease()
+_lrelease_bin = _lrelease_works()
 if _lrelease_bin:
+  print(f"SConscript: using lrelease at {_lrelease_bin}")
   lrelease = qt_env.Command(translation_targets, translation_sources, f"{_lrelease_bin} $SOURCES")
 else:
   # No working lrelease — emit empty .qm files. Qt logs a warning but does not fail.
-  print("SConscript: lrelease not found — generating empty .qm stubs (UI will show English only)")
-  lrelease = qt_env.Command(translation_targets, translation_sources,
-                             lambda target, source, env: [open(str(t), 'wb').close() for t in target])
+  print("SConscript: no working lrelease found — generating empty .qm stubs (UI will show English only)")
+  def _make_empty_qm(target, source, env):
+    for t in target:
+      open(str(t), 'wb').close()
+    return None
+  lrelease = qt_env.Command(translation_targets, translation_sources, _make_empty_qm)
 qt_env.NoClean(translation_sources)
 qt_env.Precious(translation_sources)
 
