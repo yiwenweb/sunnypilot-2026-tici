@@ -46,9 +46,9 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
   QPushButton *close_btn = new QPushButton(tr("×"));
   close_btn->setStyleSheet(R"(
     QPushButton {
-      font-size: 70px;
+      font-size: 140px;
       padding-bottom: 20px;
-      border-radius: 20px;
+      border-radius: 76px;
       background-color: #292929;
       font-weight: 400;
     }
@@ -56,7 +56,7 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
       background-color: #3B3B3B;
     }
   )");
-  close_btn->setFixedSize(200, 200);
+  close_btn->setFixedSize(152, 152);
   close_btn_layout->addWidget(close_btn, 0, Qt::AlignLeft);
   QObject::connect(close_btn, &QPushButton::clicked, this, &SettingsWindowSP::closeSettings);
 
@@ -106,15 +106,18 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
     btn->setStyleSheet(R"(
       QPushButton {
         border-radius: 20px;
-        color: #808080;
+        width: 400px;
+        height: 98px;
+        color: #bdbdbd;
         border: none;
         background: none;
-        font-size: 65px;
+        font-size: 50px;
         font-weight: 500;
-        text-align: right;
-        padding-right: 50px;
+        text-align: left;
+        padding-left: 22px;
       }
       QPushButton:checked {
+        background-color: #696868;
         color: white;
       }
       QPushButton:pressed {
@@ -154,15 +157,15 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
 
   setStyleSheet(R"(
     * {
-      font-family: Inter;
       color: white;
       font-size: 50px;
     }
     SettingsWindow {
-      background-color: #0A0A0A;
+      background-color: black;
     }
     QStackedWidget, ScrollViewSP {
       background-color: black;
+      border-radius: 30px;
     }
   )");
 }
