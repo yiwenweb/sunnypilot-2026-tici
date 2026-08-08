@@ -80,8 +80,8 @@ def manager_init() -> None:
   params.put_bool("IsReleaseSpBranch", build_metadata.release_sp_channel, block=True)
   params.put("HardwareSerial", serial, block=True)
 
-  # set dongle id
-  reg_res = register(show_spinner=True)
+  # set dongle id — spinner disabled on C3 (raylib/pyray incompatible with C3 firmware)
+  reg_res = register(show_spinner=False)
   if reg_res:
     dongle_id = reg_res
   else:
