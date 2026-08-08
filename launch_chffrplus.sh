@@ -86,10 +86,11 @@ function launch {
   ln -sfn openpilot/selfdrive selfdrive
   ln -sfn openpilot/sunnypilot sunnypilot
 
-  # hardware specific init
-  if [ -f /AGNOS ]; then
-    agnos_init
-  fi
+  # hardware specific init - agnos_init disabled: C3 is already on AGNOS 13.1
+  # agnos_init would try to flash AGNOS 18.4 (C3X-only), bricking C3 hardware.
+  # if [ -f /AGNOS ]; then
+  #   agnos_init
+  # fi
 
   # write tmux scrollback to a file
   tmux capture-pane -pq -S-1000 > /tmp/launch_log
