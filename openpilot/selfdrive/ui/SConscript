@@ -96,7 +96,17 @@ with open(File(translations_assets_src).abspath, 'w') as f:
 assets = "#openpilot/selfdrive/assets/assets.cc"
 assets_src = "#openpilot/selfdrive/assets/assets.qrc"
 qt_env.Command(assets, [assets_src, translations_assets_src], f"rcc $SOURCES -o $TARGET")
-qt_env.Depends(assets, Glob('#openpilot/selfdrive/assets/*', exclude=[assets, assets_src, translations_assets_src, "#openpilot/selfdrive/assets/assets.o"]) + [lrelease])
+# Depend on all files in assets/ recursively so rcc reruns when any icon/SVG changes.
+# The default non-recursive Glob missed changes inside icons/, images/, etc.
+_asset_deps = []
+_asset_root = Dir("#openpilot/selfdrive/assets").abspath
+for _root, _dirs, _files in os.walk(_asset_root):
+  for _f in _files:
+    _p = os.path.join(_root, _f)
+    if _p.endswith(('.cc', '.o')) or _p.endswith('.qrc'):
+      continue
+    _asset_deps.append(File(_p))
+qt_env.Depends(assets, _asset_deps + [lrelease] + [File(assets_src), File(translations_assets_src)])
 asset_obj = qt_env.Object("assets", assets)
 
 # build main UI
