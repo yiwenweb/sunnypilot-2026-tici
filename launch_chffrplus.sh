@@ -77,6 +77,14 @@ function launch {
   ln -sfn rednose_repo/rednose rednose
   ln -sfn teleoprtc_repo/teleoprtc teleoprtc
   ln -sfn tinygrad_repo/tinygrad tinygrad
+  # 2026 has cereal/common/system/selfdrive under openpilot/, but many modules
+  # still import them as top-level packages (e.g. `from cereal import log`).
+  # Add flat symlinks so PYTHONPATH=/data/openpilot resolves both styles.
+  ln -sfn openpilot/cereal cereal
+  ln -sfn openpilot/common common
+  ln -sfn openpilot/system system
+  ln -sfn openpilot/selfdrive selfdrive
+  ln -sfn openpilot/sunnypilot sunnypilot
 
   # hardware specific init
   if [ -f /AGNOS ]; then
