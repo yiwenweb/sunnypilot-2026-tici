@@ -34,9 +34,14 @@ void DriverMonitorRenderer::updateState(const UIState &s) {
                sm.rcv_frame("driverStateV2") > s.scene.started_frame;
   if (!is_visible) return;
 
-  auto dm_state_dep = sm["driverMonitoringStateDEPRECATED"].getDriverMonitoringStateDEPRECATED();
-  is_active = dm_state_dep.getIsActiveMode();
-  is_rhd = dm_state_dep.getIsRHD();
+  // 2026 dmonitoringd publishes DriverMonitoringState (new), not the DEPRECATED variant.
+  // sp2025-gf's Qt UI still read *DEPRECATED; port to the new struct fields:
+  //   old.isActiveMode  ->  new.activePolicy == MonitoringPolicy.vision
+  //   old.isRHD         ->  new.isRHD
+  // (mapping confirmed by openpilot/selfdrive/test/process_replay/migration.py)
+  auto dm_state = sm["driverMonitoringState"].getDriverMonitoringState();
+  is_active = (dm_state.getActivePolicy() == cereal::DriverMonitoringState::MonitoringPolicy::VISION);
+  is_rhd = dm_state.getIsRHD();
   dm_fade_state = std::clamp(dm_fade_state + 0.2f * (0.5f - is_active), 0.0f, 1.0f);
 
   const auto &driverstate = sm["driverStateV2"].getDriverStateV2();
