@@ -32,6 +32,7 @@ submodule_python_paths = [
   Dir("#msgq_repo").abspath,
   Dir("#opendbc_repo").abspath,
   Dir("#rednose_repo").abspath,
+  Dir("#stub_pkgs").abspath,
   Dir("#teleoprtc_repo").abspath,
   Dir("#tinygrad_repo").abspath,
 ]
