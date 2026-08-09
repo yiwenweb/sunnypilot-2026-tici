@@ -230,7 +230,7 @@ else:
 np_version = SCons.Script.Value(np.__version__)
 Export('envCython', 'np_version')
 
-Export('env', 'arch', 'acados', 'release', 'ffmpeg_libs')
+Export('env', 'arch', 'release', 'ffmpeg_libs')  # acados removed: not built on C3 (ARM64 incompat)
 
 # Setup cache dir
 default_cache_dir = '/data/scons_cache' if arch == "larch64" else '/tmp/scons_cache'
@@ -354,13 +354,17 @@ if arch == "larch64":
   SConscript(['openpilot/system/camerad/SConscript'])
 
 # Build selfdrive
-SConscript([
+# NOTE: longitudinal_mpc_lib requires acados which is x86_64 only.
+# On C3 (larch64), longitudinal_mpc is not rebuilt; the pre-built .so from AGNOS is used.
+_selfdrive_sconscripts = [
   'openpilot/selfdrive/pandad/SConscript',
-  'openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/SConscript',
   'openpilot/selfdrive/locationd/SConscript',
   'openpilot/selfdrive/modeld/SConscript',
   'openpilot/selfdrive/ui/SConscript',
-])
+]
+if arch != "larch64":
+  _selfdrive_sconscripts.insert(1, 'openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/SConscript')
+SConscript(_selfdrive_sconscripts)
 
 SConscript(['openpilot/sunnypilot/SConscript'])
 
