@@ -33,6 +33,7 @@ submodule_python_paths = [
   Dir("#opendbc_repo").abspath,
   Dir("#rednose_repo").abspath,
   Dir("#stub_pkgs").abspath,
+  Dir("#third_party/acados").abspath,  # exposes acados_template as top-level import
   Dir("#teleoprtc_repo").abspath,
   Dir("#tinygrad_repo").abspath,
 ]
