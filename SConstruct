@@ -58,7 +58,19 @@ assert arch in [
 
 pkg_names = ['bzip2', 'capnproto', 'catch2', 'eigen', 'ffmpeg', 'json11', 'ncurses', 'zeromq', 'zstd']
 pkgs = [importlib.import_module(name) for name in pkg_names]
-# acados = pkgs[pkg_names.index('acados')]
+
+# acados is optional: only available when third_party/acados/ exists.
+# stub_pkgs/acados/__init__.py points at third_party/acados/{larch64,x86_64,Darwin}/lib.
+try:
+  import acados
+  _acados_have_lib = os.path.isdir(acados.LIB_DIR) and any(
+    f.startswith('libacados') for f in os.listdir(acados.LIB_DIR)
+  ) if os.path.isdir(acados.LIB_DIR) else False
+  if not _acados_have_lib:
+    acados = None
+except ImportError:
+  acados = None
+
 ffmpeg = pkgs[pkg_names.index('ffmpeg')]
 # Shared package ships .so/.dylib; older device venvs still have static .a only.
 # Keep static link deps (x264/z/va/drm) when the installed package is static so
@@ -74,11 +86,14 @@ if not ffmpeg_shared:
   ffmpeg_libs += ['x264', 'z']
   if arch != "Darwin":
     ffmpeg_libs += ['va', 'va-drm', 'drm']
-# acados_include_dirs = [
-#   acados.INCLUDE_DIR,
-#   os.path.join(acados.INCLUDE_DIR, "blasfeo", "include"),
-#   os.path.join(acados.INCLUDE_DIR, "hpipm", "include"),
-# ]
+if acados is not None:
+  acados_include_dirs = [
+    acados.INCLUDE_DIR,
+    os.path.join(acados.INCLUDE_DIR, "blasfeo", "include"),
+    os.path.join(acados.INCLUDE_DIR, "hpipm", "include"),
+  ]
+else:
+  acados_include_dirs = []
 
 
 # ***** enforce a whitelist of system libraries *****
@@ -121,14 +136,17 @@ def _libflags(target, source, env, for_signature):
   return _stripixes(env['LIBLINKPREFIX'], libs, env['LIBLINKSUFFIX'],
                     env['LIBPREFIXES'], env['LIBSUFFIXES'], env, env['LIBLITERALPREFIX'])
 
+_scons_env = {
+  "PATH": os.environ['PATH'],
+  "PYTHONPATH": os.pathsep.join(submodule_python_paths),
+}
+if acados is not None:
+  _scons_env["ACADOS_SOURCE_DIR"] = acados.DIR
+  _scons_env["ACADOS_PYTHON_INTERFACE_PATH"] = acados.TEMPLATE_DIR
+  _scons_env["TERA_PATH"] = acados.TERA_PATH
+
 env = Environment(
-  ENV={
-    "PATH": os.environ['PATH'],
-    "PYTHONPATH": os.pathsep.join(submodule_python_paths),
-    # "ACADOS_SOURCE_DIR": acados.DIR,
-    # "ACADOS_PYTHON_INTERFACE_PATH": acados.TEMPLATE_DIR,
-    # "TERA_PATH": acados.TERA_PATH
-  },
+  ENV=_scons_env,
   CCFLAGS=[
     "-g",
     "-fPIC",
@@ -152,7 +170,7 @@ env = Environment(
     "#rednose_repo/rednose", # #include "logger/..." (rednose package root)
     "#openpilot/cereal/gen/cpp",
     "#third_party/linux/include",  # vendored linux/ion.h, msm_ion.h etc. for larch64
-    # acados_include_dirs,
+    acados_include_dirs,
     [x.INCLUDE_DIR for x in pkgs],
     "#",
   ],
@@ -230,7 +248,7 @@ else:
 np_version = SCons.Script.Value(np.__version__)
 Export('envCython', 'np_version')
 
-Export('env', 'arch', 'release', 'ffmpeg_libs')  # acados removed: not built on C3 (ARM64 incompat)
+Export('env', 'arch', 'acados', 'release', 'ffmpeg_libs')
 
 # Setup cache dir
 default_cache_dir = '/data/scons_cache' if arch == "larch64" else '/tmp/scons_cache'
@@ -359,15 +377,14 @@ if arch == "larch64":
   SConscript(['openpilot/system/camerad/SConscript'])
 
 # Build selfdrive
-# NOTE: longitudinal_mpc_lib requires acados which is x86_64 only.
-# On C3 (larch64), longitudinal_mpc is not rebuilt; the pre-built .so from AGNOS is used.
 _selfdrive_sconscripts = [
   'openpilot/selfdrive/pandad/SConscript',
   'openpilot/selfdrive/locationd/SConscript',
   'openpilot/selfdrive/modeld/SConscript',
   'openpilot/selfdrive/ui/SConscript',
 ]
-if arch != "larch64":
+# longitudinal_mpc_lib Imports 'acados'; only build when we have it (real lib present)
+if acados is not None:
   _selfdrive_sconscripts.insert(1, 'openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/SConscript')
 SConscript(_selfdrive_sconscripts)
 
