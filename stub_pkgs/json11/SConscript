@@ -6,5 +6,11 @@ import os
 _here = Dir('.').srcnode().abspath
 _env = env.Clone()
 _env['CPPPATH'] = [_here] + list(_env.get('CPPPATH', []))
+# Vendored json11.cpp uses `using namespace std;` and unqualified move();
+# C3's clang is stricter than the CI toolchain, so downgrade this warning.
+_env.Append(CXXFLAGS=[
+  '-Wno-error=unqualified-std-cast-call',
+  '-Wno-unqualified-std-cast-call',
+])
 libjson11 = _env.StaticLibrary(target='json11', source=['json11.cpp'])
 Export('libjson11')
