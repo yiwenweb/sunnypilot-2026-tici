@@ -115,4 +115,4 @@ openpilot/selfdrive/ui/assets.cc
 **/*.ppk
 # Scratch
 zz.txt
-stub_pkgs/
+# stub_pkgs/ (removed - needed for C3 build)
