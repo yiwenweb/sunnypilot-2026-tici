@@ -116,3 +116,11 @@ openpilot/selfdrive/ui/assets.cc
 # Scratch
 zz.txt
 # stub_pkgs/ (removed - needed for C3 build)
+
+# Allow shipping arm64/x86_64 acados binaries (needed by longitudinal_mpc_lib)
+!third_party/acados/**/*.so
+!third_party/acados/**/*.so.*
+!third_party/acados/**/*.a
+!third_party/acados/**/*.pkl
+!third_party/acados/**/t_renderer
+

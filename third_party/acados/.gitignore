@@ -1,0 +1,8 @@
+acados_repo/
+# Do not ignore the vendored per-arch lib directories; we ship .so binaries
+# for larch64 (C3) and x86_64 (dev) so the build does not need the acados repo.
+!x86_64/
+!larch64/
+!aarch64/
+!*/lib/
+!*/lib/**
