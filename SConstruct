@@ -250,6 +250,11 @@ def prune_cache_dir(target=None, source=None, env=None):
 
 # ********** start building stuff **********
 
+# Build json11 stub library from vendored source (when comma-deps-json11 not installed)
+_stub_json11_src = File('#stub_pkgs/json11/json11.cpp')
+if _stub_json11_src.exists():
+  SConscript(['stub_pkgs/json11/SConscript'])
+
 # Build common module
 SConscript(['openpilot/common/SConscript'])
 Import('_common')

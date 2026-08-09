@@ -1,0 +1,10 @@
+Import('env')
+import os
+
+# Build libjson11.a from the vendored json11.cpp when the system package
+# comma-deps-json11 is not available (typical on C3 fresh clones).
+_here = Dir('.').srcnode().abspath
+_env = env.Clone()
+_env['CPPPATH'] = [_here] + list(_env.get('CPPPATH', []))
+libjson11 = _env.StaticLibrary(target='json11', source=['json11.cpp'])
+Export('libjson11')
