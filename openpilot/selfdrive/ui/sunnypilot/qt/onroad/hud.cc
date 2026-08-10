@@ -188,24 +188,27 @@ void HudRendererSP::updateState(const UIState &s) {
     vcAccel += (car_state.getAEgo() - vcAccel) / 5.0f;
   }
 
-  // ConfidenceBall: read disengagePredictions and smooth the confidence value
+  // ConfidenceBall: read disengagePredictions and smooth the confidence value.
+  // Mirrors mici/onroad/confidence_ball.py:
+  //   1 - max(steerOverrideProbs or [1])       (LAT_ONLY)
+  //   1 - max(brakeDisengageProbs or [1])      (LONG_ONLY)
+  //   (1 - max(brake)) * (1 - max(steer))      (ENGAGED)
+  // Empty list -> fallback to 1.0 so `1 - max` = 0 (low confidence).
   if (sm.updated("modelV2")) {
     const auto model = sm["modelV2"].getModelV2();
     float confidence_target = -0.5f;
     auto dp = model.getMeta().getDisengagePredictions();
-    const float *steer_probs = dp.getSteerOverrideProbs().c_data();
-    const float *brake_probs = dp.getBrakeDisengageProbs().c_data();
-    size_t steer_n = dp.getSteerOverrideProbs().size();
-    size_t brake_n = dp.getBrakeDisengageProbs().size();
+    // capnp List Reader access is via operator[] (not .c_data()).
+    auto steer_reader = dp.getSteerOverrideProbs();
+    auto brake_reader = dp.getBrakeDisengageProbs();
 
-    // Find max probability from each list
-    float max_steer = 1.0f;
-    for (size_t i = 0; i < steer_n; ++i) {
-      max_steer = std::min(max_steer, steer_probs[i]);
+    float max_steer = steer_reader.size() > 0 ? steer_reader[0] : 1.0f;
+    for (size_t i = 1; i < steer_reader.size(); ++i) {
+      max_steer = std::max(max_steer, steer_reader[i]);
     }
-    float max_brake = 1.0f;
-    for (size_t i = 0; i < brake_n; ++i) {
-      max_brake = std::min(max_brake, brake_probs[i]);
+    float max_brake = brake_reader.size() > 0 ? brake_reader[0] : 1.0f;
+    for (size_t i = 1; i < brake_reader.size(); ++i) {
+      max_brake = std::max(max_brake, brake_reader[i]);
     }
 
     if (status == STATUS_DISENGAGED) {
