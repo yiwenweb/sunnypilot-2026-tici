@@ -24,9 +24,10 @@ int main(int argc, char *argv[]) {
 
   QTranslator translator;
   QString translation_file = QString::fromStdString(Params().get("LanguageSetting"));
-  QString qm_path = QApplication::applicationDirPath() + "/translations/" + translation_file + ".qm";
-  if (!translator.load(qm_path) && translation_file.length()) {
-    qCritical() << "Failed to load translation file:" << qm_path;
+  // .qm files are embedded into the ui binary via translations_assets.qrc,
+  // matching sp2025-gf. Load from the QRC alias path (":/<lang-code>").
+  if (!translator.load(QString(":/%1").arg(translation_file)) && translation_file.length()) {
+    qCritical() << "Failed to load translation file:" << translation_file;
   }
   a.installTranslator(&translator);
 

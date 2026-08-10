@@ -51,51 +51,26 @@ with open(File("#openpilot/selfdrive/ui/translations/languages.json").abspath) a
 translation_sources = [f"#openpilot/selfdrive/ui/translations/{l}.ts" for l in languages.values()]
 translation_targets = [src.replace(".ts", ".qm") for src in translation_sources]
 
-# Actually test lrelease by running it. C3 systems commonly have /usr/bin/lrelease
-# as a stub that forwards to a missing /usr/lib/qt5/bin/lrelease and fails at runtime.
-def _lrelease_works():
-  import subprocess
-  # Try vendored first (comma CI on larch64)
-  vendored = File("#third_party/qt5/larch64/bin/lrelease").abspath
-  candidates = [vendored, "/usr/lib/qt5/bin/lrelease", "/usr/bin/lrelease"]
-  for c in candidates:
-    if not (os.path.exists(c) and os.access(c, os.X_OK)):
-      continue
-    try:
-      # -help exits 0 if lrelease actually works, non-zero if the wrapper stub is broken
-      r = subprocess.run([c, "-help"], capture_output=True, timeout=5)
-      if r.returncode == 0:
-        return c
-    except Exception:
-      continue
-  return None
-
-_lrelease_bin = _lrelease_works()
-if _lrelease_bin:
-  print(f"SConscript: using lrelease at {_lrelease_bin}")
-  lrelease = qt_env.Command(translation_targets, translation_sources, f"{_lrelease_bin} $SOURCES")
-else:
-  # No working lrelease — emit empty .qm files. Qt logs a warning but does not fail.
-  print("SConscript: no working lrelease found — generating empty .qm stubs (UI will show English only)")
-  def _make_empty_qm(target, source, env):
-    for t in target:
-      open(str(t), 'wb').close()
-    return None
-  lrelease = qt_env.Command(translation_targets, translation_sources, _make_empty_qm)
+# Use vendored lrelease on TICI (larch64), system lrelease elsewhere.
+# Matches sp2025-gf which is known to work on the same C3 device.
+lrelease_bin = 'third_party/qt5/larch64/bin/lrelease' if arch == 'larch64' else 'lrelease'
+lrelease = qt_env.Command(translation_targets, translation_sources, f"{lrelease_bin} $SOURCES")
 qt_env.NoClean(translation_sources)
 qt_env.Precious(translation_sources)
 
-# create qrc file for compiled translations to include with assets
-# NOTE: Removed QRC embedding for translations. main.cc loads .qm files directly
-# from the filesystem at applicationDirPath() + "/translations/". The QRC approach
-# (using ":/" prefix) was abandoned because it conflicted with the filesystem loading.
-# .qm files are built by lrelease (or as empty stubs on C3) and deployed to the
-# translations/ directory alongside the ui binary.
+# Create QRC file that embeds compiled .qm translations into the ui binary.
+# main.cc loads them via QTranslator::load(":/<lang>") so no runtime file
+# deployment is needed. Kept in sync with sp2025-gf's approach.
+translations_assets_src = "#openpilot/selfdrive/assets/translations_assets.qrc"
+with open(File(translations_assets_src).abspath, 'w') as f:
+  f.write('<!DOCTYPE RCC><RCC version="1.0">\n<qresource>\n')
+  f.write('\n'.join([f'<file alias="{l}">../ui/translations/{l}.qm</file>' for l in languages.values()]))
+  f.write('\n</qresource>\n</RCC>')
 
-# build assets (translations no longer embedded via QRC - loaded from filesystem)
+# build assets (translations embedded via translations_assets.qrc alongside assets.qrc)
 assets = "#openpilot/selfdrive/assets/assets.cc"
 assets_src = "#openpilot/selfdrive/assets/assets.qrc"
-qt_env.Command(assets, [assets_src], f"rcc $SOURCES -o $TARGET")
+qt_env.Command(assets, [assets_src, translations_assets_src], f"rcc $SOURCES -o $TARGET")
 # Depend on all files in assets/ recursively so rcc reruns when any icon/SVG changes.
 # The default non-recursive Glob missed changes inside icons/, images/, etc.
 _asset_deps = []
@@ -106,7 +81,7 @@ for _root, _dirs, _files in os.walk(_asset_root):
     if _p.endswith(('.cc', '.o')) or _p.endswith('.qrc'):
       continue
     _asset_deps.append(File(_p))
-qt_env.Depends(assets, _asset_deps + [lrelease] + [File(assets_src)])
+qt_env.Depends(assets, _asset_deps + [lrelease] + [File(assets_src), File(translations_assets_src)])
 asset_obj = qt_env.Object("assets", assets)
 
 # build main UI
