@@ -45,19 +45,6 @@ void ModelRendererSP::draw(QPainter &painter, const QRect &surface_rect) {
   update_model(model, lead_one);
   drawLaneLines(painter);
 
-  // Torque lane line highlight: when steering torque exceeds threshold,
-  // highlight adjacent lane lines (indices 1,2) with orange gradient
-  const float torque = car_state.getSteeringTorqueEps();
-  const float torque_threshold = 0.6f;
-  if (std::abs(torque) > torque_threshold) {
-    float intensity = std::min(std::abs(torque) / 2.0f, 1.0f);
-    QColor torque_color = QColor::fromRgbF(1.0f, 0.65f * intensity, 0.0f, 0.6f * intensity);
-    for (int i = 1; i <= 2; ++i) {
-      painter.setBrush(torque_color);
-      painter.drawPolygon(lane_line_vertices[i]);
-    }
-  }
-
   if (s->scene.rainbow_mode) {
     drawRainbowPath(painter, surface_rect);
   } else {
