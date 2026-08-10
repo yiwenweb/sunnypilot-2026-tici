@@ -42,8 +42,14 @@ void ModelRendererSP::draw(QPainter &painter, const QRect &surface_rect) {
   const auto &lead_one = radar_state.getLeadOne();
   const auto &car_state = sm["carState"].getCarState();
 
+  // Smooth the normalized (-1..1) actuator torque like mici raylib does.
+  // Sign is flipped to match the Python convention: torque>0 -> steering left.
+  const float torque_raw = -sm["carOutput"].getCarOutput().getActuatorsOutput().getTorque();
+  const float torque = torque_filter.update(torque_raw);
+
   update_model(model, lead_one);
   drawLaneLines(painter);
+  drawTorqueLaneHighlight(painter, torque);
 
   if (s->scene.rainbow_mode) {
     drawRainbowPath(painter, surface_rect);
@@ -251,4 +257,41 @@ void ModelRendererSP::drawRainbowPath(QPainter &painter, const QRect &surface_re
 
   painter.setBrush(bg);
   painter.drawPolygon(track_vertices);
+}
+
+
+void ModelRendererSP::drawTorqueLaneHighlight(QPainter &painter, float torque) {
+  // Overlay orange highlight on the adjacent lane line that matches the
+  // steering direction, when smoothed |torque| > 0.6. Blends from 0..1 over
+  // the range |torque| in [0.6, 0.8].
+  // Ports mici raylib logic: _get_ll_color() in mici/onroad/model_renderer.py.
+  //
+  // Convention (Python-compatible, with sign flip applied at read site):
+  //   torque > 0  -> steering left  -> highlight LEFT adjacent line (index 1)
+  //   torque < 0  -> steering right -> highlight RIGHT adjacent line (index 2)
+  //
+  // Blend factor uses linear interpolation, capped at 1.0. Highlight alpha
+  // scales with the underlying lane_line_probs so it fades out with the
+  // white line itself instead of standing out against invisible lines.
+  constexpr float kThreshold = 0.6f;
+  constexpr float kBlendMax = 0.8f;
+
+  const float abs_torque = std::abs(torque);
+  if (abs_torque <= kThreshold) return;
+
+  const int idx = (torque > 0.0f) ? 1 : 2;  // 1 = left adjacent, 2 = right adjacent
+  if (lane_line_vertices[idx].isEmpty()) return;
+
+  const float t = std::clamp((abs_torque - kThreshold) / (kBlendMax - kThreshold), 0.0f, 1.0f);
+  const float base_alpha = std::clamp<float>(lane_line_probs[idx], 0.0f, 0.7f);
+  // Orange (255, 115, 0) blended in with factor t. Composite over the
+  // already-drawn white lane line, so effective color approximates
+  // blend_colors(white, orange, t) after both draws.
+  const float rf = 1.0f;                                       // white R=1 -> orange R=1
+  const float gf = 1.0f - (1.0f - 115.0f / 255.0f) * t;
+  const float bf = 1.0f - (1.0f - 0.0f)           * t;
+
+  painter.setPen(Qt::NoPen);
+  painter.setBrush(QColor::fromRgbF(rf, gf, bf, base_alpha));
+  painter.drawPolygon(lane_line_vertices[idx]);
 }

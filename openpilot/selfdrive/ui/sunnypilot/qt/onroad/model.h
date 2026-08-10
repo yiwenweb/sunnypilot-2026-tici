@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "openpilot/common/util.h"
 #include "openpilot/selfdrive/ui/qt/onroad/model.h"
 
 class ModelRendererSP : public ModelRenderer {
@@ -22,10 +23,18 @@ private:
                               const QPointF &chevron_pos, int height, int width);
   void drawBlindspot(QPainter &painter, const QRect &surface_rect, bool left_blindspot, bool right_blindspot);
   void drawRainbowPath(QPainter &painter, const QRect &surface_rect);
+  // Overlay orange highlight on the adjacent lane line matching the steering
+  // direction when normalized torque exceeds threshold. Ports mici raylib
+  // logic from openpilot/selfdrive/ui/mici/onroad/model_renderer.py.
+  void drawTorqueLaneHighlight(QPainter &painter, float torque);
 
   QPolygonF left_blindspot_vertices;
   QPolygonF right_blindspot_vertices;
 
   // Lead status animation
   float lead_status_alpha = 0.0f;
+
+  // Steering-torque smoothing for adjacent lane line highlight.
+  // ts=0.1, dt=1/UI_FREQ (20Hz) matches raylib config.
+  FirstOrderFilter torque_filter{0.0f, 0.1f, 1.0f / UI_FREQ};
 };
