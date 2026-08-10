@@ -41,6 +41,7 @@ private:
   void drawBlinker(QPainter &p, const QRect &surface_rect);
   void drawTorqueBar(QPainter &p, const QRect &surface_rect);
   void drawRocketFuel(QPainter &p, const QRect &surface_rect);
+  void drawConfidenceBall(QPainter &p, const QRect &surface_rect);
 
   bool lead_status;
   float lead_d_rel;
@@ -129,4 +130,7 @@ private:
   float torqueFilterX = 0.0;
   float torqueLineAlphaFilter = 0.0;
   float vcAccel = 0.0;
+
+  // ConfidenceBall
+  float confidenceFilterX = -0.5f;
 };

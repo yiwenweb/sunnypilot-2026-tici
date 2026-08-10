@@ -86,16 +86,16 @@ qt_env.NoClean(translation_sources)
 qt_env.Precious(translation_sources)
 
 # create qrc file for compiled translations to include with assets
-translations_assets_src = "#openpilot/selfdrive/assets/translations_assets.qrc"
-with open(File(translations_assets_src).abspath, 'w') as f:
-  f.write('<!DOCTYPE RCC><RCC version="1.0">\n<qresource>\n')
-  f.write('\n'.join([f'<file alias="{l}">../ui/translations/{l}.qm</file>' for l in languages.values()]))
-  f.write('\n</qresource>\n</RCC>')
+# NOTE: Removed QRC embedding for translations. main.cc loads .qm files directly
+# from the filesystem at applicationDirPath() + "/translations/". The QRC approach
+# (using ":/" prefix) was abandoned because it conflicted with the filesystem loading.
+# .qm files are built by lrelease (or as empty stubs on C3) and deployed to the
+# translations/ directory alongside the ui binary.
 
-# build assets
+# build assets (translations no longer embedded via QRC - loaded from filesystem)
 assets = "#openpilot/selfdrive/assets/assets.cc"
 assets_src = "#openpilot/selfdrive/assets/assets.qrc"
-qt_env.Command(assets, [assets_src, translations_assets_src], f"rcc $SOURCES -o $TARGET")
+qt_env.Command(assets, [assets_src], f"rcc $SOURCES -o $TARGET")
 # Depend on all files in assets/ recursively so rcc reruns when any icon/SVG changes.
 # The default non-recursive Glob missed changes inside icons/, images/, etc.
 _asset_deps = []
@@ -106,7 +106,7 @@ for _root, _dirs, _files in os.walk(_asset_root):
     if _p.endswith(('.cc', '.o')) or _p.endswith('.qrc'):
       continue
     _asset_deps.append(File(_p))
-qt_env.Depends(assets, _asset_deps + [lrelease] + [File(assets_src), File(translations_assets_src)])
+qt_env.Depends(assets, _asset_deps + [lrelease] + [File(assets_src)])
 asset_obj = qt_env.Object("assets", assets)
 
 # build main UI

@@ -188,6 +188,47 @@ void HudRendererSP::updateState(const UIState &s) {
     vcAccel += (car_state.getAEgo() - vcAccel) / 5.0f;
   }
 
+  // ConfidenceBall: read disengagePredictions and smooth the confidence value
+  if (sm.updated("modelV2")) {
+    const auto model = sm["modelV2"].getModelV2();
+    float confidence_target = -0.5f;
+    auto dp = model.getMeta().getDisengagePredictions();
+    const float *steer_probs = dp.getSteerOverrideProbs().c_data();
+    const float *brake_probs = dp.getBrakeDisengageProbs().c_data();
+    size_t steer_n = dp.getSteerOverrideProbs().size();
+    size_t brake_n = dp.getBrakeDisengageProbs().size();
+
+    // Find max probability from each list
+    float max_steer = 1.0f;
+    for (size_t i = 0; i < steer_n; ++i) {
+      max_steer = std::min(max_steer, steer_probs[i]);
+    }
+    float max_brake = 1.0f;
+    for (size_t i = 0; i < brake_n; ++i) {
+      max_brake = std::min(max_brake, brake_probs[i]);
+    }
+
+    if (status == STATUS_DISENGAGED) {
+      confidence_target = -0.5f;
+    } else if (status == STATUS_LAT_ONLY) {
+      // LAT_ONLY: use steerOverrideProbs
+      confidence_target = 1.0f - max_steer;
+    } else if (status == STATUS_LONG_ONLY) {
+      // LONG_ONLY: use brakeDisengageProbs
+      confidence_target = 1.0f - max_brake;
+    } else if (status == STATUS_ENGAGED) {
+      // ENGAGED: combine both probabilities
+      confidence_target = (1.0f - max_steer) * (1.0f - max_brake);
+    } else {
+      // OVERRIDE
+      confidence_target = 0.5f;
+    }
+
+    // First-order low-pass filter (alpha = 0.2, ~5 frames smoothing at 20Hz)
+    confidenceFilterX += (confidence_target - confidenceFilterX) * 0.2f;
+    confidenceFilterX = std::clamp(confidenceFilterX, -0.5f, 1.0f);
+  }
+
   speedCluster = car_state.getCruiseState().getSpeedCluster() * speedConv;
 
   allow_e2e_alerts = sm["selfdriveState"].getSelfdriveState().getAlertSize() == cereal::SelfdriveState::AlertSize::NONE &&
@@ -333,6 +374,9 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     if (rocketFuel) {
       drawRocketFuel(p, surface_rect);
     }
+
+    // ConfidenceBall
+    drawConfidenceBall(p, surface_rect);
   }
 
   p.restore();
@@ -1045,4 +1089,57 @@ void HudRendererSP::drawRocketFuel(QPainter &p, const QRect &surface_rect) {
     p.drawRect(QRectF(0, surface_rect.y() + ra_y, wp, hha_px / 2.0f));
     p.restore();
   }
+}
+
+void HudRendererSP::drawConfidenceBall(QPainter &p, const QRect &surface_rect) {
+  // ConfidenceBall: displays model confidence as a vertical gradient dot on the right edge.
+  // Mirrors the raylib mici ConfidenceBall logic:
+  //   - Dot position: lower = low confidence, higher = high confidence
+  //   - Color: green(cyan) = high, yellow/orange = medium, red = low
+  //   - MADS states use fixed colors (cyan=purple)
+  // Position: right side of the screen, matching the side panel area.
+  const int dot_radius = 32; // Scaled up from 24 (raylib) for Qt DPI
+  const int panel_width = 80; // Right-side panel reserved width
+  const int dot_x = surface_rect.right() - panel_width / 2;
+  const int content_h = surface_rect.height();
+
+  // Vertical position: maps confidence filter to a height on screen
+  // High confidence (filter=1.0) → dot near top; Low confidence (filter=-0.5) → dot near bottom
+  float dot_y = content_h - ((confidenceFilterX + 0.5f) / 1.0f) * (content_h - 2 * dot_radius) - dot_radius;
+
+  // Determine colors based on status and confidence level
+  QColor top_color(50, 50, 50, 255);   // default: grey (disengaged)
+  QColor bottom_color(13, 13, 13, 255);
+
+  if (status == STATUS_ENGAGED) {
+    if (confidenceFilterX > 0.5f) {
+      top_color = QColor(0, 255, 204, 255);   // cyan-green: high confidence
+      bottom_color = QColor(0, 255, 38, 255);  // green: high confidence
+    } else if (confidenceFilterX > 0.2f) {
+      top_color = QColor(255, 200, 0, 255);   // yellow: medium
+      bottom_color = QColor(255, 115, 0, 255); // orange: medium-low
+    } else {
+      top_color = QColor(255, 0, 21, 255);     // red: low confidence
+      bottom_color = QColor(255, 0, 89, 255);
+    }
+  } else if (status == STATUS_LAT_ONLY) {
+    top_color = QColor(0, 200, 200, 255);     // cyan for LAT_ONLY
+    bottom_color = QColor(0, 200, 200, 255);
+  } else if (status == STATUS_LONG_ONLY) {
+    top_color = QColor(150, 28, 168, 255);    // purple for LONG_ONLY
+    bottom_color = QColor(150, 28, 168, 255);
+  } else if (status == STATUS_OVERRIDE) {
+    top_color = QColor(255, 255, 255, 255);   // white
+    bottom_color = QColor(82, 82, 82, 255);   // grey
+  }
+
+  // Draw gradient circle using QRadialGradient
+  p.save();
+  p.setPen(Qt::NoPen);
+  QRadialGradient gradient(QPointF(dot_x, dot_y), dot_radius);
+  gradient.setColorAt(0.0, top_color);
+  gradient.setColorAt(1.0, bottom_color);
+  p.setBrush(gradient);
+  p.drawEllipse(QPointF(dot_x, dot_y), dot_radius, dot_radius);
+  p.restore();
 }
