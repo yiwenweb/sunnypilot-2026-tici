@@ -2886,4 +2886,741 @@ Bottom</source>
         <translation>加载中...</translation>
     </message>
 </context>
+<context>
+    <name>GeneralSP</name>
+    <message>
+        <source></source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>
+
+Steering lag calibration is %1% complete.</source>
+        <translation>转向延迟校准已完成 %1%。</translation>
+    </message>
+    <message>
+        <source>
+
+Steering lag calibration is complete.</source>
+        <translation>转向延迟校准已完成。</translation>
+    </message>
+    <message>
+        <source>
+
+Warning: You are on a metered connection!</source>
+        <translation>
+
+警告：您正在使用按流量计费的连接！</translation>
+    </message>
+    <message>
+        <source>%1 - %2</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>%n minute(s) ago&quot;, &quot;&quot;, minutes);
+  } else if (diff &lt; 60 * 60 * 24) {
+    int hours = diff / (60 * 60);
+    s = QObject::tr(&quot;%n hour(s) ago&quot;, &quot;&quot;, hours);
+  } else if (diff &lt; 3600 * 24 * 7) {
+    int days = diff / (60 * 60 * 24);
+    s = QObject::tr(&quot;%n day(s) ago&quot;, &quot;&quot;, days);
+  } else {
+    s = date.date().toString();
+  }
+
+  return s;
+}
+
+void setQtSurfaceFormat() {
+  QSurfaceFormat fmt;
+#ifdef __APPLE__
+  fmt.setVersion(3, 2);
+  fmt.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+  fmt.setRenderableType(QSurfaceFormat::OpenGL);
+#else
+  fmt.setRenderableType(QSurfaceFormat::OpenGLES);
+#endif
+  fmt.setSamples(16);
+  fmt.setStencilBufferSize(1);
+  QSurfaceFormat::setDefaultFormat(fmt);
+}
+
+void sigTermHandler(int s) {
+  std::signal(s, SIG_DFL);
+  qApp-&gt;quit();
+}
+
+void initApp(int argc, char *argv[], bool disable_hidpi) {
+  Hardware::set_display_power(true);
+  Hardware::set_brightness(65);
+
+  // setup signal handlers to exit gracefully
+  std::signal(SIGINT, sigTermHandler);
+  std::signal(SIGTERM, sigTermHandler);
+
+  QString app_dir;
+#ifdef __APPLE__
+  // Get the devicePixelRatio, and scale accordingly to maintain 1:1 rendering
+  QApplication tmp(argc, argv);
+  app_dir = QCoreApplication::applicationDirPath();
+  if (disable_hidpi) {
+    qputenv(&quot;QT_SCALE_FACTOR&quot;, QString::number(1.0 / tmp.devicePixelRatio()).toLocal8Bit());
+  }
+#else
+  // Try /proc/self/exe first, fall back to Qt's own path resolution
+  QString exe_path = QFileInfo(util::readlink(&quot;/proc/self/exe</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&lt;span stylesheet='font-size: 60px; font-weight: bold; color: #e74c3c;'&gt;INACTIVE&lt;/span&gt;: connect to an unmetered network</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Allows the driver to provide limited steering input while openpilot is engaged.</source>
+        <translation>允许驾驶员在openpilot启用时提供有限的转向输入。</translation>
+    </message>
+    <message>
+        <source>Apply a custom timeout for settings UI.&quot;
+                                      &quot;
+This is the time after which settings UI closes automatically if user is not interacting with the screen.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>CANCEL</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Clear Model Cache</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Click &quot;add new device&quot; and scan the QR code on the right</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>继续</translation>
+    </message>
+    <message>
+        <source>Cooperative Steering (Beta)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Developer UI</source>
+        <translation>开发者界面</translation>
+    </message>
+    <message>
+        <source>Device will automatically shutdown after set time once the engine is turned off.&lt;br/&gt;(30h is the default)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Disable</source>
+        <translation>禁用</translation>
+    </message>
+    <message>
+        <source>Display</source>
+        <translation>显示</translation>
+    </message>
+    <message>
+        <source>Display steering arc on the driving screen when lateral control is enabled.</source>
+        <translation>启用横向控制时，在驾驶屏幕上显示转向弧线。</translation>
+    </message>
+    <message>
+        <source>Download starting...</source>
+        <translation>下载开始...</translation>
+    </message>
+    <message>
+        <source>Driving Model Selector</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Enable custom Short &amp; Long press increments for cruise speed increase/decrease.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Enable this for the car to learn and adapt its steering response time. &quot;
+                   &quot;Disable to use a fixed steering response time. Keeping this on provides the stock openpilot experience.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Enables custom tuning for Torque lateral control. Modifying Lateral Acceleration Factor and Friction below will override the offline values indicated in the YAML files within &quot;opendbc/car/torque_data&quot;. &quot;
+       &quot;The values will also be used live when &quot;Manual Real-Time Tuning&quot; toggle is enabled.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Enter search keywords, or leave blank to list all countries.</source>
+        <translation>输入搜索关键词，或留空列出所有国家。</translation>
+    </message>
+    <message>
+        <source>Enter search keywords, or leave blank to list all states.</source>
+        <translation>输入搜索关键词，或留空列出所有州/省。</translation>
+    </message>
+    <message>
+        <source>Experimental feature to enable auto-resume during stop-and-go for certain supported Subaru platforms.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Experimental feature to enable stop and go for Subaru Global models with manual handbrake. Models with electric parking brake should keep this disabled. Thanks to martinl for this implementation!</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Experimental mode is currently unavailable on this car since the car's stock ACC is used for longitudinal control.</source>
+        <translation>实验模式在此车辆上当前不可用，因为车辆使用原厂ACC进行纵向控制。</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>收藏</translation>
+    </message>
+    <message>
+        <source>Fine-tune your driving experience by adjusting acceleration smoothness with sunnypilot longitudinal control.</source>
+        <translation>通过sunnypilot纵向控制调整加速平顺性，优化驾驶体验。</translation>
+    </message>
+    <message>
+        <source>Forget Wi-Fi Network &quot;%1&quot;?</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Formerly known as &lt;b&gt;&quot;NNFF&quot;&lt;/b&gt;, this replaces the lateral &lt;b&gt;&quot;torque&quot;&lt;/b&gt; controller, &quot;
+                                            &quot;with one using a neural network trained on each car's (actually, each separate EPS firmware) driving data for increased controls accuracy.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>If sponsorship status was not updated, please contact a moderator on our forum at https://community.sunnypilot.ai</source>
+        <translation>如果赞助状态未更新，请通过我们的论坛 https://community.sunnypilot.ai 联系管理员</translation>
+    </message>
+    <message>
+        <source>Join our Community Forum at https://community.sunnypilot.ai and reach out to a moderator if you have issues</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Join the sunnypilot Community Forum</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>LEAD VEHICLE
+DEPARTING</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>语言</translation>
+    </message>
+    <message>
+        <source>Learn More</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Let the driving model control the gas and brakes. sunnypilot will drive as it thinks a human would, including stopping for red lights and stop signs. &quot;
+                                          &quot;Since the driving model decides the speed to drive, the set speed will only act as an upper bound. This is an alpha quality feature; &quot;
+                                          &quot;mistakes should be expected.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>MOUNT</source>
+        <translation>挂载</translation>
+    </message>
+    <message>
+        <source>Match: &quot;Exact&quot; is ideal, but &quot;Fuzzy&quot; is fine too.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Models</source>
+        <translation>模型</translation>
+    </message>
+    <message>
+        <source>Need at least %n character(s)!&quot;, &quot;&quot;, minLength), false);
+  }
+}
+
+void InputDialog::setMessage(const QString &amp;message, bool clearInputField) {
+  label-&gt;setText(message);
+  if (clearInputField) {
+    line-&gt;setText(&quot;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Need help or have ideas?&lt;br&gt;&lt;b&gt;Join&lt;/b&gt; our community now!</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>No results found for keywords: %1</source>
+        <translation>未找到关键词结果：%1</translation>
+    </message>
+    <message>
+        <source>No vehicles found for query: %1</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Note: This chime is only designed as a notification. It is the driver's responsibility to observe their environment and make decisions accordingly.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>On this car, sunnypilot defaults to the car's built-in ACC instead of sunnypilot's longitudinal control. &quot;
+              &quot;Enable this to switch to sunnypilot longitudinal control. Enabling Experimental mode is recommended when enabling sunnypilot longitudinal control alpha.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Only works above %4 %6.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>REGIST...</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Refresh Model List</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Scan the QR code and join us!</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Set a timer to delay the auto lane change operation when the blinker is used. &quot;
+     &quot;No nudge on the steering wheel is required to auto lane change if a timer is set. Default is Nudge.
+&quot;
+     &quot;Please use caution when using this feature. Only use the blinker when traffic and road conditions permit.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Show an indicator on the left side of the screen to display real-time vehicle acceleration and deceleration. This displays what the car is currently doing, not what the planner is requesting.</source>
+        <translation>在屏幕左侧显示实时车辆加速和减速指示器。显示的是车辆实际状态，而非规划器请求。</translation>
+    </message>
+    <message>
+        <source>Snooze Update</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Speed Limit Source</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Standard is recommended. In aggressive mode, sunnypilot will follow lead cars closer and be more aggressive with the gas and brake. &quot;
+                                             &quot;In relaxed mode sunnypilot will stay further away from lead cars. On supported cars, you can cycle through these personalities with &quot;
+                                             &quot;your steering wheel distance button.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Start the car to check car compatibility.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Stop and Go (Beta)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Stop and Go for Manual Parking Brake (Beta)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>The reset cannot be undone. You have been warned.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>This feature can only be used with sunnypilot longitudinal control enabled.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>This feature is currently not available on this platform.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>This feature requires sunnypilot longitudinal control to be available.</source>
+        <translation>此功能需要sunnypilot纵向控制可用。</translation>
+    </message>
+    <message>
+        <source>This setting will take effect immediately.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>This will start the download process and it might take a while to complete.</source>
+        <translation>这将开始下载过程，可能需要一些时间完成。</translation>
+    </message>
+    <message>
+        <source>Turn off device screen or reduce brightness after driving starts. &quot;
+       &quot;It automatically brightens again when screen is touched or a visible alert is displayed.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Username '%1' doesn't exist on GitHub</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Username '%1' has no keys on GitHub</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>View the error log for sunnypilot crashes.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>WARNING: sunnypilot longitudinal control is in alpha for this car and will disable Automatic Emergency Braking (AEB).</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Warning: May experience steering oscillations below %5 %6 during turns, recommend disabling this feature if you experience these.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Warning: This grants SSH access to all public keys in your GitHub settings. Never enter a GitHub username &quot;
+                                       &quot;other than your own. A comma employee will NEVER ask you to add their GitHub username.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>When enabled, the speedometer on the onroad screen is not displayed.</source>
+        <translation>启用后，行车屏幕上的速度表将不显示。</translation>
+    </message>
+    <message>
+        <source>When enabled, visual turn indicators are drawn on the HUD.</source>
+        <translation>启用后，HUD上将绘制可视化转向指示器。</translation>
+    </message>
+    <message>
+        <source>When toggled on, this creates a prebuilt file to allow accelerated boot times. When toggled off, &quot;
+         &quot;it immediately removes the prebuilt file so compilation of locally edited cpp files can be made. &quot;
+         &quot;&lt;br&gt;&lt;br&gt;&lt;b&gt;To edit C++ files locally on device, you MUST first turn off this toggle so the changes can recompile.&lt;/b&gt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>You must accept the Terms and Conditions to use sunnypilot. Read the latest terms at &lt;span style='color: #465BEA;'&gt;https://comma.ai/terms&lt;/span&gt; before continuing.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>for &quot;%1&quot;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>https://github.com/commaai/openpilot.git&quot; &quot;?</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>on Metered</source>
+        <translation>按流量计费</translation>
+    </message>
+    <message>
+        <source>openpilot is continuously calibrating, resetting is rarely required. &quot;
+             &quot;Resetting calibration will restart openpilot if the car is powered on.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sunnypilot Community</source>
+        <translation>sunnypilot社区</translation>
+    </message>
+    <message>
+        <source>sunnypilot defaults to driving in &lt;b&gt;chill mode&lt;/b&gt;. Experimental mode enables &lt;b&gt;alpha-level features&lt;/b&gt; that aren't ready for chill mode. Experimental features are listed below:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sunnypilot longitudinal control may come in a future update.</source>
+        <translation>sunnypilot纵向控制可能在未来的更新中推出。</translation>
+    </message>
+    <message>
+        <source>⁍ Default: Device will boot/wake-up normally &amp; will be ready to engage.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>⦿ Assist: Adjusts the vehicle's cruise speed based on the current road's speed limit when operating the +/- buttons.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>⦿ Combined: Use combined Speed Limit data from Car &amp; OpenStreetMaps</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>⦿ Information: Displays the current road's speed limit.</source>
+        <translation>⦿ 信息：显示当前道路的限速。</translation>
+    </message>
+    <message>
+        <source>⦿ Warning: Provides a warning when exceeding the current road's speed limit.</source>
+        <translation>⦿ 警告：超过当前道路限速时发出警告。</translation>
+    </message>
+</context>
+
+<context>
+    <name>DevicePanelSP</name>
+    <message>
+        <source>%1 updates requires a reboot.&lt;br&gt;Reboot now?</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Enable &quot;Always Offroad&quot; in Device panel, or turn vehicle off to select an option.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Enable &quot;Always Offroad&quot; in Device panel, or turn vehicle off to toggle.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Offroad Mode</source>
+        <translation>离线模式</translation>
+    </message>
+    <message>
+        <source>Wake-Up Behavior</source>
+        <translation>唤醒行为</translation>
+    </message>
+</context>
+
+<context>
+    <name>FirehosePanel</name>
+    <message>
+        <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.&quot;, &quot;&quot;, count));
+      contribution_label-&gt;show();
+    }
+  });
+
+  QObject::connect(uiState(), &amp;UIState::uiUpdate, this, &amp;FirehosePanel::refresh);
+}
+
+void FirehosePanel::refresh() {
+  auto deviceState = (*uiState()-&gt;sm)[&quot;deviceState&quot;].getDeviceState();
+  auto networkType = deviceState.getNetworkType();
+  bool networkMetered = deviceState.getNetworkMetered();
+
+  bool is_active = !networkMetered &amp;&amp; (networkType != cereal::DeviceState::NetworkType::NONE);
+  if (is_active) {
+    toggle_label-&gt;setText(tr(&quot;ACTIVE</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sunnypilot learns to drive by watching humans, like you, drive.
+
+Firehose Mode allows you to maximize your training data uploads to improve openpilot's driving models. More data means bigger models, which means better Experimental Mode.</source>
+        <translation>sunnypilot通过观察人类驾驶来学习。
+
+Firehose模式允许您最大化训练数据上传，以改善openpilot的驾驶模型。更多数据意味着更大的模型，更好的实验模式。</translation>
+    </message>
+</context>
+
+<context>
+    <name>ModelsPanelSP</name>
+    <message>
+        <source>Adjust the software delay when Live Learning Steer Delay is toggled off.&quot;
+                                         &quot;
+The default software delay value is 0.2</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Cancel Download</source>
+        <translation>取消下载</translation>
+    </message>
+    <message>
+        <source>Off-Policy Model</source>
+        <translation>离线策略模型</translation>
+    </message>
+    <message>
+        <source>On-Policy Model</source>
+        <translation>在线策略模型</translation>
+    </message>
+</context>
+
+<context>
+    <name>VisualsPanelSP</name>
+    <message>
+        <source>Auto Lane Change: Delay with Blind Spot</source>
+        <translation>自动变道：盲点延迟</translation>
+    </message>
+    <message>
+        <source>Display Turn Signals</source>
+        <translation>显示转向信号</translation>
+    </message>
+    <message>
+        <source>Display useful metrics below the chevron that tracks the lead car (only applicable to cars with sunnypilot longitudinal control).</source>
+        <translation>在跟踪前车的箭头下方显示有用指标（仅适用于具有sunnypilot纵向控制的车辆）。</translation>
+    </message>
+    <message>
+        <source>Real-time Acceleration Bar</source>
+        <translation>实时加速条</translation>
+    </message>
+    <message>
+        <source>Right &amp;&amp;
+Bottom</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Steering Arc</source>
+        <translation>转向弧线</translation>
+    </message>
+</context>
+
+<context>
+    <name>DeveloperPanelSP</name>
+    <message>
+        <source>Copyparty is a very capable file server, you can use it to download your routes, view your logs and even make some edits on some files from your browser. Requires you to connect to your comma locally via it's IP.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Enable GitHub runner service</source>
+        <translation>启用GitHub runner服务</translation>
+    </message>
+    <message>
+        <source>Toggle visibility of advanced sunnypilot controls.
+This only toggles the visibility of the controls; it does not toggle the actual control enabled/disabled state.</source>
+        <translation></translation>
+    </message>
+</context>
+
+<context>
+    <name>OsmPanelSP</name>
+    <message>
+        <source>Country</source>
+        <translation>国家</translation>
+    </message>
+    <message>
+        <source>Fetching Country list...</source>
+        <translation>正在获取国家列表...</translation>
+    </message>
+    <message>
+        <source>Search Country</source>
+        <translation>搜索国家</translation>
+    </message>
+    <message>
+        <source>Search State</source>
+        <translation>搜索州/省</translation>
+    </message>
+    <message>
+        <source>Select Country</source>
+        <translation>选择国家</translation>
+    </message>
+    <message>
+        <source>Select State</source>
+        <translation>选择州/省</translation>
+    </message>
+    <message>
+        <source>This will delete ALL downloaded maps
+
+Are you sure you want to delete all the maps?</source>
+        <translation>这将删除所有已下载的地图
+
+确定要删除所有地图吗？</translation>
+    </message>
+    <message>
+        <source>This will delete ALL downloaded models from the cache&quot;
+                            &quot;&lt;br/&gt;&lt;u&gt;except the currently active model&lt;/u&gt;.&quot;
+                            &quot;&lt;br/&gt;&lt;br/&gt;Are you sure you want to continue?</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Yes, delete all the maps.</source>
+        <translation>是的，删除所有地图。</translation>
+    </message>
+</context>
+
+<context>
+    <name>LongitudinalPanelSP</name>
+    <message>
+        <source>Disable the sunnypilot Longitudinal Control (alpha) toggle to allow Intelligent Cruise Button Management.</source>
+        <translation>禁用sunnypilot纵向控制(alpha)切换以启用智能巡航按键管理。</translation>
+    </message>
+    <message>
+        <source>Dynamic Experimental Control (DEC)</source>
+        <translation>动态实验控制 (DEC)</translation>
+    </message>
+    <message>
+        <source>Intelligent Cruise Button Management is currently unavailable on this platform.</source>
+        <translation>智能巡航按键管理当前在此平台上不可用。</translation>
+    </message>
+    <message>
+        <source>sunnypilot Longitudinal Control (Alpha)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sunnypilot Longitudinal Control is the default longitudinal control for this platform.</source>
+        <translation>sunnypilot纵向控制是此平台的默认纵向控制。</translation>
+    </message>
+</context>
+
+<context>
+    <name>SunnylinkPanelSP</name>
+    <message>
+        <source>Enable sunnylink uploader (infrastructure test)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Pair your GitHub account to grant your device sponsor benefits, including API access on sunnylink.</source>
+        <translation>配对您的GitHub账户以授予设备赞助者权益，包括sunnylink的API访问。</translation>
+    </message>
+    <message>
+        <source>Re-enter the &quot;sunnylink&quot; panel to verify sponsorship status</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Scan the QR code to visit sunnyhaibin's GitHub Sponsors page</source>
+        <translation>扫描二维码访问sunnyhaibin的GitHub赞助页面</translation>
+    </message>
+    <message>
+        <source>Sponsorship isn't required for basic backup/restore</source>
+        <translation>基本备份/恢复不需要赞助</translation>
+    </message>
+    <message>
+        <source>sunnylink</source>
+        <translation>sunnylink</translation>
+    </message>
+    <message>
+        <source>sunnylink Dongle ID not found. This may be due to weak internet connection or sunnylink registration issue. Please reboot and try again.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sunnylink enables secured remote access to your comma device from anywhere, &quot;
+                           &quot;including settings management, remote monitoring, real-time dashboard, etc.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>sunnylink is designed to be enabled as part of sunnypilot's core functionality. &quot;
+                           &quot;If sunnylink is disabled, features such as settings management, remote monitoring, &quot;
+                           &quot;real-time dashboards will be unavailable.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>🎉Welcome back! We're excited to see you've enabled sunnylink again! 🚀</source>
+        <translation>🎉欢迎回来！很高兴看到您重新启用了sunnylink！🚀</translation>
+    </message>
+    <message>
+        <source>👋Not going to lie, it's sad to see you disabled sunnylink 😢, but we'll be here when you're ready to come back 🎉.</source>
+        <translation>👋说实话，看到您禁用了sunnylink我们很难过😢，但我们会在这里等您准备好回来🎉。</translation>
+    </message>
+</context>
+
+<context>
+    <name>ExternalStorageSP</name>
+    <message>
+        <source>Extend your comma device's storage by inserting a USB drive into the aux port.</source>
+        <translation>通过将USB驱动器插入辅助端口来扩展comma设备的存储。</translation>
+    </message>
+</context>
+
+<context>
+    <name>HudRendererSP</name>
+    <message>
+        <source>GREEN
+LIGHT</source>
+        <translation>绿灯</translation>
+    </message>
+    <message>
+        <source>STOPPED</source>
+        <translation>已停车</translation>
+    </message>
+</context>
+
+<context>
+    <name>SoftwarePanelSP</name>
+    <message>
+        <source>Quickboot mode requires updates to be disabled.&lt;br&gt;Enable 'Disable Updates' in the Software panel first.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>When enabled, software updates will be disabled. &lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>When enabled, software updates will be disabled.&lt;br&gt;&lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
+        <translation></translation>
+    </message>
+</context>
+
+<context>
+    <name>SidebarSP</name>
+    <message>
+        <source>SUNNYLINK</source>
+        <translation>SUNNYLINK</translation>
+    </message>
+</context>
 </TS>
