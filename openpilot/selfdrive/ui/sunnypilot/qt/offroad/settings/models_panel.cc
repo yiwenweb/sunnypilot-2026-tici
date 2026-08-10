@@ -126,7 +126,7 @@ ModelsPanel::ModelsPanel(QWidget *parent) : QWidget(parent) {
                             "If you’re driving at 20 mph (32 km/h) or below and have your blinker on, "
                             "the car will plan a turn in that direction at the nearest drivable path. "
                             "This prevents situations (like at red lights) where the car might plan the wrong turn direction.",
-                             "../assets/offroad/icon_shell.png");
+                             "../assets/icons/shell.png");
   list->addItem(lane_turn_desire_toggle);
 
   // Lane Turn Value control
@@ -146,7 +146,7 @@ ModelsPanel::ModelsPanel(QWidget *parent) : QWidget(parent) {
   connect(lane_turn_value_control, &OptionControlSP::updateLabels, this, &ModelsPanel::refreshLaneTurnValueControl);
 
   // LiveDelay toggle
-  lagd_toggle_control = new ParamControlSP("LagdToggle", tr("Live Learning Steer Delay"), "", "../assets/offroad/icon_shell.png");
+  lagd_toggle_control = new ParamControlSP("LagdToggle", tr("Live Learning Steer Delay"), "", "../assets/icons/shell.png");
   lagd_toggle_control->showDescription();
   list->addItem(lagd_toggle_control);
 
