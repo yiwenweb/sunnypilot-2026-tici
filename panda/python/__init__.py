@@ -146,7 +146,10 @@ class Panda:
   H7_DEVICES = [HW_TYPE_RED_PANDA, HW_TYPE_TRES, HW_TYPE_CUATRO, HW_TYPE_BODY]
   SUPPORTED_DEVICES = F4_DEVICES + H7_DEVICES
 
-  INTERNAL_DEVICES = (HW_TYPE_TRES, HW_TYPE_CUATRO)
+  # dos is the comma two's internal panda, so it must be treated as internal:
+  # pandad's check_panda_support() only accepts SPI or internal pandas, and
+  # recovery uses the SoM's GPIO reset/boot0 lines rather than a USB reset.
+  INTERNAL_DEVICES = (HW_TYPE_DOS, HW_TYPE_TRES, HW_TYPE_CUATRO)
 
   HARNESS_STATUS_NC = 0
   HARNESS_STATUS_NORMAL = 1
