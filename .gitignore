@@ -14,9 +14,13 @@ a.out
 .hypothesis
 .cache/
 bin/
-# Exception: vendor Qt5 lrelease binary from sp2025-gf so translations
-# can compile on C3 (larch64) without needing a system lrelease install.
+# Exception: vendor only Qt5 lrelease from sp2025-gf so translations can
+# compile on C3 (larch64) without a system lrelease install.
+!third_party/
+!third_party/qt5/
+!third_party/qt5/larch64/
 !third_party/qt5/larch64/bin/
+third_party/qt5/larch64/bin/*
 !third_party/qt5/larch64/bin/lrelease
 
 # created at launch for TICI PYTHONPATH (PC uses editable installs via pyproject.toml)

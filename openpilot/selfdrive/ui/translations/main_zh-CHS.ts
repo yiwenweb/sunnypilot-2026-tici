@@ -689,7 +689,8 @@ This is the time after which settings UI closes automatically if user is not int
     </message>
     <message numerus="yes">
         <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.</source>
-        <translation>目前已有 &lt;b&gt;%n段&lt;/b&gt; 驾驶数据在训练数据集中。<numerusform>&lt;b&gt;目前已有 %n 段&lt;/b&gt; 您的驾驶数据被纳入训练数据集。</numerusform>
+        <translation>
+            <numerusform>&lt;b&gt;目前已有 %n 段&lt;/b&gt; 您的驾驶数据被纳入训练数据集。</numerusform>
         </translation>
     </message>
     <message>
