@@ -839,7 +839,8 @@ DEPARTING</source>
     </message>
     <message numerus="yes">
         <source>Need at least %n character(s)!</source>
-        <translation>至少需要 %n 个字符！<numerusform>至少需要 %n 个字符！</numerusform>
+        <translation>
+            <numerusform>至少需要 %n 个字符！</numerusform>
         </translation>
     </message>
 </context>
@@ -1746,17 +1747,20 @@ Warning: You are on a metered connection!</source>
     <name>QObject</name>
     <message numerus="yes">
         <source>%n minute(s) ago</source>
-        <translation>%n 分钟前<numerusform>%n 分钟前</numerusform>
+        <translation>
+            <numerusform>%n 分钟前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>%n hour(s) ago</source>
-        <translation>%n 小时前<numerusform>%n 小时前</numerusform>
+        <translation>
+            <numerusform>%n 小时前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>%n day(s) ago</source>
-        <translation>%n 天前<numerusform>%n 天前</numerusform>
+        <translation>
+            <numerusform>%n 天前</numerusform>
         </translation>
     </message>
     <message>
