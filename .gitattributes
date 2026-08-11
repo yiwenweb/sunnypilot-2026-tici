@@ -1,1 +1,3 @@
 *.onnx filter=lfs diff=lfs merge=lfs -text
+# Vendored Qt5 lrelease (aarch64 ELF binary) — force binary handling
+third_party/qt5/larch64/bin/lrelease binary
