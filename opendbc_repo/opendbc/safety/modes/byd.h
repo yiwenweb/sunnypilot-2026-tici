@@ -1,6 +1,6 @@
 #pragma once
 
-#include "opendbc/safety/safety_declarations.h"
+#include "opendbc/safety/declarations.h"
 
 // === BYD Tang DM 2018 - Lateral + experimental longitudinal ===
 
