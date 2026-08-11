@@ -28,7 +28,15 @@ static int get_health_pkt(void *dat) {
   health->heartbeat_lost_pkt = heartbeat_lost;
   health->safety_rx_checks_invalid_pkt = safety_rx_checks_invalid;
 
+  // dos (STM32F4) has no SPI peripheral, so spi.h (which defines
+  // spi_error_count) is never compiled in. Report 0 rather than skipping the
+  // field: the response buffer is not zeroed per call, so a skipped field would
+  // send stale bytes that the SoM would read as a real SPI error count.
+  #ifdef STM32F4
+  health->spi_error_count_pkt = 0U;
+  #else
   health->spi_error_count_pkt = spi_error_count;
+  #endif
 
   health->fault_status_pkt = fault_status;
   health->faults_pkt = faults;
@@ -42,7 +50,12 @@ static int get_health_pkt(void *dat) {
 
   health->som_reset_triggered = bootkick_reset_triggered;
 
+  // sound is H7-only (cuatro mic/amp); dos never compiles sound.h
+  #ifdef STM32F4
+  health->sound_output_level_pkt = 0U;
+  #else
   health->sound_output_level_pkt = sound_output_level;
+  #endif
 
   health->controls_allowed_lateral_pkt = controls_allowed || controls_allowed_lateral;
   health->controls_allowed_longitudinal_pkt = controls_allowed;
