@@ -53,7 +53,12 @@ translation_targets = [src.replace(".ts", ".qm") for src in translation_sources]
 
 # Use vendored lrelease on TICI (larch64), system lrelease elsewhere.
 # Matches sp2025-gf which is known to work on the same C3 device.
-lrelease_bin = 'third_party/qt5/larch64/bin/lrelease' if arch == 'larch64' else 'lrelease'
+# NOTE: use absolute path via File("#...").abspath because 2026 scons cwd is
+# not the repo root (unlike sp2025-gf where the relative path worked).
+if arch == 'larch64':
+  lrelease_bin = File("#third_party/qt5/larch64/bin/lrelease").abspath
+else:
+  lrelease_bin = 'lrelease'
 lrelease = qt_env.Command(translation_targets, translation_sources, f"{lrelease_bin} $SOURCES")
 qt_env.NoClean(translation_sources)
 qt_env.Precious(translation_sources)
