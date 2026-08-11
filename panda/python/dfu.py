@@ -104,6 +104,11 @@ class PandaDFU:
       uid_base = struct.unpack("H" * 6, bytes.fromhex(st))
       if mcu_type == McuType.H7:
         return binascii.hexlify(struct.pack("!HHH", uid_base[1] + uid_base[5], uid_base[0] + uid_base[4], uid_base[3])).upper().decode("utf-8")
+      # F4 (dos) folds the UID differently than H7. Without this branch the
+      # function falls through and implicitly returns None for F4, so recovery
+      # silently degrades to "match any DFU device" and cannot target a
+      # specific panda.
+      return binascii.hexlify(struct.pack("!HHH", uid_base[1] + uid_base[5], uid_base[0] + uid_base[4] + 0xA, uid_base[3])).upper().decode("utf-8")
     except struct.error:
       return None
 
