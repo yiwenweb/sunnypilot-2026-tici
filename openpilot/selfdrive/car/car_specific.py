@@ -91,6 +91,9 @@ class CarSpecificEvents:
       # if CC.eps_timer_soft_disable_alert:
       #   events.add(EventName.steerTimeLimit)
 
+    elif self.CP.brand == 'byd':
+      events = self.create_common_events(CS, CS_prev)
+
     return events
 
   def create_common_events(self, CS: structs.CarState, CS_prev: car.CarState):
