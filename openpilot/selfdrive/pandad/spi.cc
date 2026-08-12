@@ -312,6 +312,7 @@ int PandaSpiHandle::lltransfer(spi_ioc_transfer &t) {
 
 int PandaSpiHandle::spi_transfer(uint8_t endpoint, uint8_t *tx_data, uint16_t tx_len, uint8_t *rx_data, uint16_t max_rx_len, unsigned int timeout) {
   int ret;
+  int nack_cnt = 0;
   uint16_t rx_data_len;
   LockEx lock(spi_fd, hw_lock);
 
@@ -394,7 +395,6 @@ int PandaSpiHandle::spi_transfer(uint8_t endpoint, uint8_t *tx_data, uint16_t tx
 fail:
   // ensure slave is in a consistent state
   // and ready for the next transfer
-  int nack_cnt = 0;
   while (nack_cnt < 3) {
     if (wait_for_ack(SPI_NACK, 0x14, 1, SPI_BUF_SIZE/2) == 0) {
       nack_cnt += 1;

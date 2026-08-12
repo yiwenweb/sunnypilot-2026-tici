@@ -24,7 +24,9 @@ libusb_context *init_usb_ctx() {
 }
 
 bool is_panda(const libusb_device_descriptor &desc) {
-  return desc.idVendor == 0x3801 && desc.idProduct == 0xddcc;
+  const bool valid_vid = desc.idVendor == 0x3801 || desc.idVendor == 0xbbaa;
+  const bool valid_pid = desc.idProduct == 0xddcc || desc.idProduct == 0xddee;
+  return valid_vid && valid_pid;
 }
 
 }
