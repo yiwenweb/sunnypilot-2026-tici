@@ -31,21 +31,28 @@ bool is_panda(const libusb_device_descriptor &desc) {
 
 PandaUsbHandle::PandaUsbHandle(std::string serial) : PandaCommsHandle(serial) {
   libusb_device **device_list = nullptr;
-  ctx = init_usb_ctx();
-  if (ctx == nullptr) goto fail;
+  ssize_t device_count = -1;
+  auto connection_error = [this, &device_list]() -> void {
+    if (device_list != nullptr) libusb_free_device_list(device_list, 1);
+    cleanup();
+    throw std::runtime_error("Error connecting to panda over USB");
+  };
 
-  const ssize_t device_count = libusb_get_device_list(ctx, &device_list);
-  if (device_count < 0) goto fail;
+  ctx = init_usb_ctx();
+  if (ctx == nullptr) connection_error();
+
+  device_count = libusb_get_device_list(ctx, &device_list);
+  if (device_count < 0) connection_error();
 
   for (ssize_t index = 0; index < device_count; ++index) {
     libusb_device_descriptor desc;
     if (libusb_get_device_descriptor(device_list[index], &desc) != 0 || !is_panda(desc)) continue;
 
-    if (libusb_open(device_list[index], &dev_handle) < 0 || dev_handle == nullptr) goto fail;
+    if (libusb_open(device_list[index], &dev_handle) < 0 || dev_handle == nullptr) connection_error();
 
     unsigned char descriptor_serial[26] = {};
     const int result = libusb_get_string_descriptor_ascii(dev_handle, desc.iSerialNumber, descriptor_serial, sizeof(descriptor_serial));
-    if (result < 0) goto fail;
+    if (result < 0) connection_error();
 
     hw_serial = std::string(reinterpret_cast<char *>(descriptor_serial), result);
     if (serial.empty() || serial == hw_serial) break;
@@ -54,19 +61,13 @@ PandaUsbHandle::PandaUsbHandle(std::string serial) : PandaCommsHandle(serial) {
     dev_handle = nullptr;
   }
 
-  if (dev_handle == nullptr) goto fail;
+  if (dev_handle == nullptr) connection_error();
   libusb_free_device_list(device_list, 1);
   device_list = nullptr;
 
   if (libusb_kernel_driver_active(dev_handle, 0) == 1) libusb_detach_kernel_driver(dev_handle, 0);
-  if (libusb_set_configuration(dev_handle, 1) != 0) goto fail;
-  if (libusb_claim_interface(dev_handle, 0) != 0) goto fail;
-  return;
-
-fail:
-  if (device_list != nullptr) libusb_free_device_list(device_list, 1);
-  cleanup();
-  throw std::runtime_error("Error connecting to panda over USB");
+  if (libusb_set_configuration(dev_handle, 1) != 0) connection_error();
+  if (libusb_claim_interface(dev_handle, 0) != 0) connection_error();
 }
 
 PandaUsbHandle::~PandaUsbHandle() {
