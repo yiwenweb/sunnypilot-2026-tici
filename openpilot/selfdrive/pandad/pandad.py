@@ -108,8 +108,16 @@ def main() -> None:
       cloudlog.event("pandad.flash_and_connect", count=count)
       if (count % 2) == 0:
         HARDWARE.reset_internal_panda()
+        # F4 (dos) reconnects over USB and needs time to re-enumerate after a
+        # GPIO reset. Without waiting, Panda.list() returns empty immediately,
+        # the loop falls through, and the next iteration resets the F4 again -
+        # causing the OTG FS endpoint to stall after ~75s of thrashing.
+        # H7 (tres/cuatro) uses SPI and does not exhibit this issue, so it's
+        # cheap to wait unconditionally.
+        Panda.wait_for_panda(None, timeout=10)
       else:
         HARDWARE.recover_internal_panda()
+        Panda.wait_for_dfu(None, timeout=10)
       count += 1
 
       # Flash all Pandas in DFU mode
