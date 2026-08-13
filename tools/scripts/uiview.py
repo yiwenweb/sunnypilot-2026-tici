@@ -8,7 +8,9 @@ from openpilot.system.manager.process_config import managed_processes, is_tinygr
 from openpilot.common.hardware import HARDWARE
 
 if __name__ == "__main__":
-  CP = car.CarParams(notCar=True, wheelbase=1, steerRatio=10)
+  # Keep the test UI on the normal onroad camera view. With notCar=True,
+  # HomeWindow intentionally switches to BodyWindow instead of OnroadWindow.
+  CP = car.CarParams(notCar=False, wheelbase=1, steerRatio=10)
   params = Params()
   params.put("CarParams", CP.to_bytes(), block=True)
 
