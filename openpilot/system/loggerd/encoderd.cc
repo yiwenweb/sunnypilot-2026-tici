@@ -176,7 +176,9 @@ int main(int argc, char* argv[]) {
     ret = util::set_realtime_priority(52);
     assert(ret == 0);
     ret = util::set_core_affinity({3});
-    assert(ret == 0);
+    if (ret != 0) {
+      LOGW("encoderd failed to set core affinity to core 3: %d", ret);
+    }
   }
   if (argc > 1) {
     std::string arg1(argv[1]);

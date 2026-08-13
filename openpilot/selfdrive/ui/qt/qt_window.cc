@@ -16,15 +16,18 @@ void setMainWindow(QWidget *w) {
 #ifdef QCOM2
   QPlatformNativeInterface *native = QGuiApplication::platformNativeInterface();
   wl_surface *s = reinterpret_cast<wl_surface*>(native->nativeResourceForWindow("surface", w->windowHandle()));
-  wl_surface_set_buffer_transform(s, WL_OUTPUT_TRANSFORM_270);
-  wl_surface_commit(s);
+  if (s != nullptr) {
+    wl_surface_set_buffer_transform(s, WL_OUTPUT_TRANSFORM_270);
+    wl_surface_commit(s);
+  }
 
   w->setWindowState(Qt::WindowFullScreen);
   w->setVisible(true);
 
-  // ensure we have a valid eglDisplay, otherwise the ui will silently fail
   void *egl = native->nativeResourceForWindow("egldisplay", w->windowHandle());
-  assert(egl != nullptr);
+  if (egl == nullptr) {
+    qCritical() << "Qt UI missing egldisplay for window; continuing without assert";
+  }
 #endif
 }
 

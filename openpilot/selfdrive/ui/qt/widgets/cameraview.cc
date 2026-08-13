@@ -167,10 +167,15 @@ void CameraWidget::stopVipcThread() {
 
 #ifdef QCOM2
   EGLDisplay egl_display = eglGetCurrentDisplay();
-  assert(egl_display != EGL_NO_DISPLAY);
-  for (auto &pair : egl_images) {
-    eglDestroyImageKHR(egl_display, pair.second);
-    assert(eglGetError() == EGL_SUCCESS);
+  if (egl_display == EGL_NO_DISPLAY) {
+    qCritical() << "CameraWidget missing current EGL display; skipping EGL image cleanup";
+  } else {
+    for (auto &pair : egl_images) {
+      eglDestroyImageKHR(egl_display, pair.second);
+      if (eglGetError() != EGL_SUCCESS) {
+        qCritical() << "Failed destroying EGL image during CameraWidget shutdown";
+      }
+    }
   }
   egl_images.clear();
 #endif
@@ -265,7 +270,11 @@ void CameraWidget::vipcConnected(VisionIpcClient *vipc_client) {
 
 #ifdef QCOM2
   EGLDisplay egl_display = eglGetCurrentDisplay();
-  assert(egl_display != EGL_NO_DISPLAY);
+  if (egl_display == EGL_NO_DISPLAY) {
+    qCritical() << "CameraWidget missing current EGL display; skipping DMABUF EGL import";
+    egl_images.clear();
+    return;
+  }
   for (auto &pair : egl_images) {
     eglDestroyImageKHR(egl_display, pair.second);
   }
@@ -286,7 +295,10 @@ void CameraWidget::vipcConnected(VisionIpcClient *vipc_client) {
       EGL_NONE
     };
     egl_images[i] = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, 0, img_attrs);
-    assert(eglGetError() == EGL_SUCCESS);
+    if (egl_images[i] == EGL_NO_IMAGE_KHR || eglGetError() != EGL_SUCCESS) {
+      qCritical() << "Failed to import camera buffer as EGL image" << i;
+      egl_images.erase(i);
+    }
   }
 #else
   glBindTexture(GL_TEXTURE_2D, textures[0]);

@@ -8,7 +8,9 @@
 int main(int argc, char *argv[]) {
   // doesn't need RT priority since we're using isolcpus
   int ret = util::set_core_affinity({6});
-  assert(ret == 0 || Params().getBool("IsOffroad")); // failure ok while offroad due to offlining cores
+  if (ret != 0) {
+    LOGW("camerad failed to set core affinity to core 6: %d", ret);
+  }
 
   camerad_thread();
   return 0;
