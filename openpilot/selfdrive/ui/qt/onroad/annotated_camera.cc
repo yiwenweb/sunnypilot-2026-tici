@@ -129,10 +129,16 @@ void AnnotatedCameraWidget::paintGL() {
   painter.setRenderHint(QPainter::Antialiasing);
   painter.setPen(Qt::NoPen);
 
+  // Overlay order matches the 2026 raylib UI (AugmentedRoadView._render):
+  //   model -> bottom fade overlay -> HUD -> driver state
+  // Note: painting is implicitly clipped to this widget, which is inset by
+  // UI_BORDER_SIZE by OnroadWindow's layout. That is the Qt equivalent of
+  // raylib's begin_scissor_mode(content_rect).
   model.draw(painter, rect());
-  dmon.draw(painter, rect());
+  drawFadeOverlay(painter, rect());
   hud.updateState(*s);
   hud.draw(painter, rect());
+  dmon.draw(painter, rect());
 
   double cur_draw_t = millis_since_boot();
   double dt = cur_draw_t - prev_draw_t;

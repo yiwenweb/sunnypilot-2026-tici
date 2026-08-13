@@ -34,6 +34,7 @@ void ModelRendererSP::draw(QPainter &painter, const QRect &surface_rect) {
   experimental_mode = sm["selfdriveState"].getSelfdriveState().getExperimentalMode();
   longitudinal_control = sm["carParams"].getCarParams().getOpenpilotLongitudinalControl();
   path_offset_z = sm["liveCalibration"].getLiveCalibration().getHeight()[0];
+  updateCameraOffset();
 
   painter.save();
 

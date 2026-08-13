@@ -165,6 +165,26 @@ ModelsPanel::ModelsPanel(QWidget *parent) : QWidget(parent) {
   });
   delay_control->showDescription();
   list->addItem(delay_control);
+
+  // Camera Offset: virtually shifts the camera's perspective, moving the model's
+  // center left (+) or right (-). Stored in meters; the control works in
+  // centimeter steps and OptionControlSP's float scaling writes back x/100.
+  // Range matches settings_ui_src/pages/models.yaml (-0.35..0.35, step 0.01).
+  camera_offset_control = new OptionControlSP("CameraOffset", tr("Adjust Camera Offset"),
+    tr("Virtually shift camera's perspective to move model's center to Left (+ values) or Right (- values)."),
+    "", {-35, 35}, 1, false, nullptr, true, true);
+  connect(camera_offset_control, &OptionControlSP::updateLabels, this, &ModelsPanel::refreshCameraOffsetControl);
+  camera_offset_control->showDescription();
+  list->addItem(camera_offset_control);
+  refreshCameraOffsetControl();
+}
+
+void ModelsPanel::refreshCameraOffsetControl() {
+  if (!camera_offset_control) return;
+  const float value = QString::fromStdString(params.get("CameraOffset")).toFloat();
+  camera_offset_control->setLabel(QString::number(value, 'f', 2) + " m");
+  // Advanced-only, same as the other advanced controls on this panel.
+  camera_offset_control->setVisible(params.getBool("ShowAdvancedControls"));
 }
 
 QProgressBar* ModelsPanel::createProgressBar(QWidget *parent) {
@@ -500,6 +520,7 @@ void ModelsPanel::updateLabels() {
 
   // Update lane turn desire label and visibility
   refreshLaneTurnValueControl();
+  refreshCameraOffsetControl();
 }
 
 /**
@@ -554,5 +575,9 @@ void ModelsPanel::showEvent(QShowEvent *event) {
   lagd_toggle_control->showDescription();
   if (delay_control->isVisible()) {
     delay_control->showDescription();
+  }
+  refreshCameraOffsetControl();
+  if (camera_offset_control->isVisible()) {
+    camera_offset_control->showDescription();
   }
 }

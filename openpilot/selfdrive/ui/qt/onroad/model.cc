@@ -1,5 +1,27 @@
 #include "openpilot/selfdrive/ui/qt/onroad/model.h"
 
+#include <cstdlib>
+
+// Poll interval for the CameraOffset param. The raylib UI re-reads it every
+// ~1-3s; matching that avoids a param read on every frame.
+static constexpr int CAMERA_OFFSET_POLL_FRAMES = 3 * UI_FREQ;
+
+void ModelRenderer::updateCameraOffset() {
+  if (--camera_offset_counter > 0) {
+    return;
+  }
+  camera_offset_counter = CAMERA_OFFSET_POLL_FRAMES;
+
+  // Only honor the offset when a custom model bundle is active, matching
+  // `ui_state.active_bundle` gating in the raylib UI. modeld only applies the
+  // shear for tinygrad models, so the visualization must not shift otherwise.
+  if (params.get("ModelManager_ActiveBundle").empty()) {
+    camera_offset = 0.0f;
+    return;
+  }
+  camera_offset = std::atof(params.get("CameraOffset").c_str());
+}
+
 void ModelRenderer::draw(QPainter &painter, const QRect &surface_rect) {
   auto *s = uiState();
   auto &sm = *(s->sm);
@@ -13,6 +35,7 @@ void ModelRenderer::draw(QPainter &painter, const QRect &surface_rect) {
   experimental_mode = sm["selfdriveState"].getSelfdriveState().getExperimentalMode();
   longitudinal_control = sm["carParams"].getCarParams().getOpenpilotLongitudinalControl();
   path_offset_z = sm["liveCalibration"].getLiveCalibration().getHeight()[0];
+  updateCameraOffset();
 
   painter.save();
 
@@ -43,7 +66,7 @@ void ModelRenderer::update_leads(const cereal::RadarState::Reader &radar_state, 
     const auto &lead_data = (i == 0) ? radar_state.getLeadOne() : radar_state.getLeadTwo();
     if (lead_data.getPresent()) {
       float z = line.getZ()[get_path_length_idx(line, lead_data.getDRel())];
-      mapToScreen(lead_data.getDRel(), -lead_data.getYRel(), z + path_offset_z, &lead_vertices[i]);
+      mapToScreen(lead_data.getDRel(), -lead_data.getYRel() + camera_offset, z + path_offset_z, &lead_vertices[i]);
     }
   }
 }
@@ -223,8 +246,11 @@ void ModelRenderer::mapLineToPolygon(const cereal::XYZTData::Reader &line, float
     // highly negative x positions  are drawn above the frame and cause flickering, clip to zy plane of camera
     if (line_x[i] < 0) continue;
 
-    bool l = mapToScreen(line_x[i], line_y[i] - y_off, line_z[i] + z_off, &left);
-    bool r = mapToScreen(line_x[i], line_y[i] + y_off, line_z[i] + z_off, &right);
+    // camera_offset shifts all model geometry laterally, matching the raylib UI
+    // where it is folded into the raw points before projection.
+    const float y = line_y[i] + camera_offset;
+    bool l = mapToScreen(line_x[i], y - y_off, line_z[i] + z_off, &left);
+    bool r = mapToScreen(line_x[i], y + y_off, line_z[i] + z_off, &right);
     if (l && r) {
       // For wider lines the drawn polygon will "invert" when going over a hill and cause artifacts
       if (!allow_invert && pvd->size() && left.y() > pvd->back().y()) {

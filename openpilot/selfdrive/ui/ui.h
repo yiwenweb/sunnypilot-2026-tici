@@ -46,13 +46,19 @@ typedef enum UIStatus {
   STATUS_LONG_ONLY,
 } UIStatus;
 
+// Border colors, aligned with the 2026 raylib UI (BORDER_COLORS / BORDER_COLORS_SP).
+// All fully opaque; the border is drawn as a rounded ring on top of a black frame.
 const QColor bg_colors [] = {
-  [STATUS_DISENGAGED] = QColor(0x17, 0x33, 0x49, 0xc8),
-  [STATUS_OVERRIDE] = QColor(0x91, 0x9b, 0x95, 0xf1),
-  [STATUS_ENGAGED] = QColor(0x17, 0x86, 0x44, 0xf1),
-  [STATUS_LAT_ONLY] = QColor(0x00, 0xc8, 0xc8, 0xf1),
-  [STATUS_LONG_ONLY] = QColor(0x96, 0x1C, 0xA8, 0xf1),
+  [STATUS_DISENGAGED] = QColor(0x12, 0x28, 0x39, 0xff),
+  [STATUS_OVERRIDE] = QColor(0x89, 0x92, 0x8D, 0xff),
+  [STATUS_ENGAGED] = QColor(0x16, 0x7F, 0x40, 0xff),
+  [STATUS_LAT_ONLY] = QColor(0x00, 0xC8, 0xC8, 0xff),
+  [STATUS_LONG_ONLY] = QColor(0x96, 0x1C, 0xA8, 0xff),
 };
+
+// Rounded border geometry, matching raylib's draw_rectangle_rounded_lines_ex()
+// (roundness is relative to half of the shorter side of the border rect).
+const float UI_BORDER_ROUNDNESS = 0.12f;
 
 typedef struct UIScene {
   Eigen::Matrix3f view_from_calib = VIEW_FROM_DEVICE;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QPainter>
 #include <QVBoxLayout>
 #include <memory>
 #include "openpilot/selfdrive/ui/qt/onroad/driver_monitoring.h"
@@ -42,6 +43,10 @@ protected:
   void initializeGL() override;
   void showEvent(QShowEvent *event) override;
   mat4 calcFrameMatrix() override;
+
+  // Bottom fade-out overlay, drawn between the model and the HUD.
+  // No-op in stock; sunnypilot overrides it (see AugmentedRoadViewSP).
+  virtual void drawFadeOverlay(QPainter &p, const QRect &surface_rect) {}
 
   double prev_draw_t = 0;
   FirstOrderFilter fps_filter;

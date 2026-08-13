@@ -36,6 +36,8 @@ protected:
                         QPolygonF *pvd, int max_idx, bool allow_invert = true);
   void drawLead(QPainter &painter, const cereal::RadarState::LeadData::Reader &lead_data, const QPointF &vd, const QRect &surface_rect);
   void update_leads(const cereal::RadarState::Reader &radar_state, const cereal::XYZTData::Reader &line);
+  // Re-reads the "CameraOffset" param at ~3s intervals, matching the raylib UI.
+  void updateCameraOffset();
   virtual void update_model(const cereal::ModelDataV2::Reader &model, const cereal::RadarState::LeadData::Reader &lead);
   void drawLaneLines(QPainter &painter);
   void drawPath(QPainter &painter, const cereal::ModelDataV2::Reader &model, int height);
@@ -49,6 +51,14 @@ protected:
   float lane_line_probs[4] = {};
   float road_edge_stds[2] = {};
   float path_offset_z = 1.22f;
+  // Lateral shift (meters) applied to model geometry so the drawn path/lane lines
+  // match what modeld sees after CameraOffsetHelper shears the model transform.
+  // Positive shifts the visualization to the left, same convention as
+  // sunnypilot/modeld_v2/camera_offset_helper.py. Only applied when a custom
+  // model bundle is active, mirroring the raylib UI.
+  float camera_offset = 0.0f;
+  int camera_offset_counter = 0;  // 0 forces a read on the first frame
+  Params params;
   QPolygonF track_vertices;
   QPolygonF lane_line_vertices[4] = {};
   QPolygonF road_edge_vertices[2] = {};
