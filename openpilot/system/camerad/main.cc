@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "common/params.h"
+#include "common/swaglog.h"
 #include "common/util.h"
 
 int main(int argc, char *argv[]) {
