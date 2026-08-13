@@ -329,7 +329,7 @@ class BydPlatformConfig(PlatformConfig):
 class CAR(Platforms):
   BYD_TANG_DM = BydPlatformConfig(
     [BydCarDocs("BYD TANG DM")],
-    CarSpecs(mass=2250., wheelbase=2.820, steerRatio=15.0, centerToFrontRatio=0.44, tireStiffnessFactor=1.0),
+    CarSpecs(mass=2250., wheelbase=2.820, steerRatio=19.0, centerToFrontRatio=0.44, tireStiffnessFactor=1.0),
   )
 
 

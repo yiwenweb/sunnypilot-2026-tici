@@ -71,7 +71,8 @@ class CarInterface(CarInterfaceBase):
         ret.longitudinalTuning.kpV, ret.longitudinalTuning.kiV = [[1.5], [0.3]]
 
         if candidate == CAR.BYD_TANG_DM:
-            ret.steerRatio = 19.0     # 门总实测: liveParameters 学习稳定锁定在 19.0 (n=17984, min18.9999~max19.006); 原 20.1478 偏大6%致转向不足
+            # ret.steerRatio = 19.0 已在values.py的CarSpecs中定义（门总实测: liveParameters学习锁定19.0）
+            # 2026版框架会自动从CarSpecs填充 mass/wheelbase/steerRatio/centerToFront，无需手动设置
             ret.minSteerSpeed = 0
             ret.autoResumeSng = True
             ret.startingState = True
