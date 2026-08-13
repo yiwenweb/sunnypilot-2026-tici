@@ -53,10 +53,8 @@ class CarInterface(CarInterfaceBase):
 
         if use_torque_lat:
             CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
-            # 对齐门总实测 (门总日志逐帧实测, 见技术笔记; configure_torque_tune 默认 ki=0.3, deadzone=0):
-            ret.lateralTuning.torque.ki = 0.1                        # 门总实测=0.1 (默认0.3偏大易振荡)
-            ret.lateralTuning.torque.steeringAngleDeadzoneDeg = 0.0  # 门总实测=0.0 (原写0.1有误)
-            # 注: kp=1.0/kf=1.0 与门总实测一致; latAccelFactor/friction 由 override.toml 提供(门总实测2.75/0.1)
+            # 2026版torque控制器不再使用PID参数(ki/kp/kf已废弃),只需latAccelFactor/friction(由override.toml提供)
+            # BYD实测值: latAccelFactor=2.0, friction=0.05 (见override.toml)
         else:
             ret.lateralTuning.init('pid')
             ret.lateralTuning.pid.kpBP, ret.lateralTuning.pid.kiBP = [[8.3, 27.8], [8.3, 27.8]]
