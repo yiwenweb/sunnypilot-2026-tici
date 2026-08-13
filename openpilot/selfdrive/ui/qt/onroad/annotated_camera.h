@@ -48,6 +48,9 @@ protected:
   // No-op in stock; sunnypilot overrides it (see AugmentedRoadViewSP).
   virtual void drawFadeOverlay(QPainter &p, const QRect &surface_rect) {}
 
+  // Inner half of the rounded status border; see OnroadWindow::paintEvent.
+  void drawBorderInner(QPainter &p, const QRect &surface_rect);
+
   double prev_draw_t = 0;
   FirstOrderFilter fps_filter;
 };

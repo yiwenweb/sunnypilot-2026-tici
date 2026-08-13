@@ -29,10 +29,15 @@ void AnnotatedCameraWidgetSP::drawFadeOverlay(QPainter &p, const QRect &surface_
     return;
   }
 
+  // Scale once and cache: smooth-scaling the source to full screen on every
+  // frame is far too slow on the C3.
+  if (fade_scaled.size() != surface_rect.size()) {
+    fade_scaled = fade_img.scaled(surface_rect.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+  }
+
   p.save();
   p.setOpacity(fade_alpha);
-  p.setRenderHint(QPainter::SmoothPixmapTransform);
-  p.drawPixmap(surface_rect, fade_img);
+  p.drawPixmap(surface_rect.topLeft(), fade_scaled);
   p.restore();
 }
 

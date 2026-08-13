@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <eigen3/Eigen/Dense>
 #include <memory>
 #include <string>
@@ -7,6 +8,7 @@
 #include <QTimer>
 #include <QColor>
 #include <QFuture>
+#include <QSizeF>
 
 #include "openpilot/cereal/messaging/messaging.h"
 #include "openpilot/common/mat.h"
@@ -59,6 +61,13 @@ const QColor bg_colors [] = {
 // Rounded border geometry, matching raylib's draw_rectangle_rounded_lines_ex()
 // (roundness is relative to half of the shorter side of the border rect).
 const float UI_BORDER_ROUNDNESS = 0.12f;
+
+// Corner radius of the status border ring, for a border rect of the given size.
+// Shared by OnroadWindow (outer half of the stroke) and AnnotatedCameraWidget
+// (inner half), so the two halves line up.
+inline qreal borderRadius(const QSizeF &border_size) {
+  return UI_BORDER_ROUNDNESS * std::min(border_size.width(), border_size.height()) / 2.0;
+}
 
 typedef struct UIScene {
   Eigen::Matrix3f view_from_calib = VIEW_FROM_DEVICE;

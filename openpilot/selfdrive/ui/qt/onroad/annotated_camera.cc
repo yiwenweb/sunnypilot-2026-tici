@@ -139,6 +139,7 @@ void AnnotatedCameraWidget::paintGL() {
   hud.updateState(*s);
   hud.draw(painter, rect());
   dmon.draw(painter, rect());
+  drawBorderInner(painter, rect());
 
   double cur_draw_t = millis_since_boot();
   double dt = cur_draw_t - prev_draw_t;
@@ -153,6 +154,22 @@ void AnnotatedCameraWidget::paintGL() {
   auto m = msg.initEvent().initUiDebug();
   m.setFrameTimeMillis(cur_draw_t - start_draw_t);
   pm->send("uiDebug", msg);
+}
+
+void AnnotatedCameraWidget::drawBorderInner(QPainter &p, const QRect &surface_rect) {
+  // Inner half of the status border ring. This widget is inset by
+  // UI_BORDER_SIZE from the window, so the ring's centerline is exactly this
+  // widget's edge: stroking it here paints the inner 15px, while OnroadWindow
+  // paints the outer 15px. Together they form the 30px rounded ring of the
+  // raylib UI, and the rounded corners let the black frame show through.
+  const qreal radius = borderRadius(QRectF(surface_rect).size());
+
+  p.save();
+  p.setRenderHint(QPainter::Antialiasing);
+  p.setBrush(Qt::NoBrush);
+  p.setPen(QPen(bg_colors[uiState()->status], UI_BORDER_SIZE, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+  p.drawRoundedRect(QRectF(surface_rect), radius, radius);
+  p.restore();
 }
 
 void AnnotatedCameraWidget::showEvent(QShowEvent *event) {

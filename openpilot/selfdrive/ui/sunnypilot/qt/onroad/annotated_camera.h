@@ -26,6 +26,7 @@ protected:
 
 private:
   QPixmap fade_img;
+  QPixmap fade_scaled;  // fade_img pre-scaled to the camera rect
   // Fade in/out when engaged. ts=0.1, dt=1/UI_FREQ matches
   // AugmentedRoadViewSP._fade_alpha_filter in the raylib UI.
   FirstOrderFilter fade_alpha_filter{0.0f, 0.1f, 1.0f / UI_FREQ};
