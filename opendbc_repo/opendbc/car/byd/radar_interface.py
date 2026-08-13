@@ -45,9 +45,6 @@ class RadarInterface(RadarInterfaceBase):
       self.pts[msg_id].dRel = longdist if isvalid else 255
       self.pts[msg_id].yRel =  msg_mrr['LatDist'] if isvalid else 0
       self.pts[msg_id].vRel = float('nan')
-      self.pts[msg_id].aRel = float('nan')
-      self.pts[msg_id].yvRel = float('nan')
-      self.pts[msg_id].measured = True
 
     ret.points = list(self.pts.values())
     self.updated_messages.clear()
