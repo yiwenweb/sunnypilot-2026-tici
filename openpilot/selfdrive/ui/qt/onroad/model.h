@@ -43,6 +43,13 @@ protected:
   void drawPath(QPainter &painter, const cereal::ModelDataV2::Reader &model, int height);
   void updatePathGradient(QLinearGradient &bg);
   QColor blendColors(const QColor &start, const QColor &end, float t);
+  // Reads longitudinalPlan.allowThrottle. SubMaster::operator[] is an
+  // unchecked services_.at(), so a build whose SubMaster forgot to subscribe
+  // would throw std::out_of_range and abort the UI on the first onroad frame.
+  // Probe once and fall back to "throttle allowed" instead.
+  bool allowThrottle();
+  enum class ServiceState { UNKNOWN, AVAILABLE, MISSING };
+  ServiceState long_plan_state = ServiceState::UNKNOWN;
 
   bool longitudinal_control = false;
   bool experimental_mode = false;

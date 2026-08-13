@@ -1,6 +1,9 @@
 #include "openpilot/selfdrive/ui/qt/onroad/model.h"
 
 #include <cstdlib>
+#include <stdexcept>
+
+#include "openpilot/common/swaglog.h"
 
 // Poll interval for the CameraOffset param. The raylib UI re-reads it every
 // ~1-3s; matching that avoids a param read on every frame.
@@ -167,8 +170,12 @@ void ModelRenderer::updatePathGradient(QLinearGradient &bg) {
   // Transition speed; 0.1 corresponds to 0.5 seconds at UI_FREQ
   constexpr float transition_speed = 0.1f;
 
-  // Start transition if throttle state changes
-  bool allow_throttle = (*uiState()->sm)["longitudinalPlan"].getLongitudinalPlan().getAllowThrottle() || !longitudinal_control;
+  // Start transition if throttle state changes.
+  // NOTE: read via allowThrottle() -- the sunnypilot SubMaster does not
+  // subscribe to "longitudinalPlan", and SubMaster::operator[] does an
+  // unchecked services_.at(), which would throw std::out_of_range and abort
+  // the UI on the first onroad frame.
+  bool allow_throttle = allowThrottle() || !longitudinal_control;
   if (allow_throttle != prev_allow_throttle) {
     prev_allow_throttle = allow_throttle;
     // Invert blend factor for a smooth transition when the state changes mid-animation
@@ -185,6 +192,24 @@ void ModelRenderer::updatePathGradient(QLinearGradient &bg) {
   bg.setColorAt(0.0f, blendColors(begin_colors[0], end_colors[0], blend_factor));
   bg.setColorAt(0.5f, blendColors(begin_colors[1], end_colors[1], blend_factor));
   bg.setColorAt(1.0f, blendColors(begin_colors[2], end_colors[2], blend_factor));
+}
+
+bool ModelRenderer::allowThrottle() {
+  if (long_plan_state == ServiceState::MISSING) {
+    return true;
+  }
+
+  SubMaster &sm = *(uiState()->sm);
+  try {
+    const bool allow = sm["longitudinalPlan"].getLongitudinalPlan().getAllowThrottle();
+    long_plan_state = ServiceState::AVAILABLE;
+    return allow;
+  } catch (const std::out_of_range &) {
+    // Not subscribed in this build; stop probing and keep the throttle colors.
+    LOGE("longitudinalPlan not in SubMaster, path throttle coloring disabled");
+    long_plan_state = ServiceState::MISSING;
+    return true;
+  }
 }
 
 QColor ModelRenderer::blendColors(const QColor &start, const QColor &end, float t) {
