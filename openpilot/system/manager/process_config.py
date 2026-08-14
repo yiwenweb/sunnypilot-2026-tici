@@ -140,7 +140,7 @@ procs = [
   # 2026 Python/raylib UI disabled — target C3 firmware cannot run raylib.
   # Kept in source for fallback; never started by manager.
   # PythonProcess("ui", "openpilot.selfdrive.ui.ui", always_run, restart_if_crash=True),
-  PythonProcess("soundd", "openpilot.selfdrive.ui.soundd", driverview),
+  PythonProcess("soundd", "openpilot.selfdrive.ui.soundd", always_run),
   PythonProcess("locationd", "openpilot.selfdrive.locationd.locationd", only_onroad),
   NativeProcess("_pandad", "openpilot/selfdrive/pandad", ["./pandad"], always_run, enabled=False),
   PythonProcess("calibrationd", "openpilot.selfdrive.locationd.calibrationd", only_onroad),
