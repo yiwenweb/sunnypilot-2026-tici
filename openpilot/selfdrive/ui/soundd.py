@@ -99,19 +99,22 @@ class Soundd(QuietMode):
     for sound in sound_list:
       filename, play_count, volume = sound_list[sound]
 
-      with wave.open(BASEDIR + "/openpilot/selfdrive/assets/sounds/" + filename, 'r') as wavefile:
-        assert wavefile.getnchannels() == 1
-        assert wavefile.getsampwidth() == 2
-        assert wavefile.getframerate() == SAMPLE_RATE
+      try:
+        with wave.open(BASEDIR + "/openpilot/selfdrive/assets/sounds/" + filename, 'r') as wavefile:
+          assert wavefile.getnchannels() == 1
+          assert wavefile.getsampwidth() == 2
+          assert wavefile.getframerate() == SAMPLE_RATE
 
-        length = wavefile.getnframes()
-        self.loaded_sounds[sound] = np.frombuffer(wavefile.readframes(length), dtype=np.int16).astype(np.float32) / (2**16/2)
+          length = wavefile.getnframes()
+          self.loaded_sounds[sound] = np.frombuffer(wavefile.readframes(length), dtype=np.int16).astype(np.float32) / (2**16/2)
+      except (wave.Error, FileNotFoundError, AssertionError) as e:
+        cloudlog.warning(f"soundd: failed to load {filename}: {e}, skipping")
 
   def get_sound_data(self, frames): # get "frames" worth of data from the current alert sound, looping when required
 
     ret = np.zeros(frames, dtype=np.float32)
 
-    if self.should_play_sound(self.current_alert):
+    if self.should_play_sound(self.current_alert) and self.current_alert in self.loaded_sounds:
       num_loops = sound_list[self.current_alert][1]
       sound_data = self.loaded_sounds[self.current_alert]
       written_frames = 0
@@ -136,7 +139,7 @@ class Soundd(QuietMode):
     data_out[:frames, 0] = self.get_sound_data(frames)
 
   def update_alert(self, new_alert):
-    current_alert_played_once = self.current_alert == AudibleAlert.none or self.current_sound_frame >= len(self.loaded_sounds[self.current_alert])
+    current_alert_played_once = self.current_alert == AudibleAlert.none or self.current_alert not in self.loaded_sounds or self.current_sound_frame >= len(self.loaded_sounds[self.current_alert])
     if self.current_alert != new_alert and (new_alert != AudibleAlert.none or current_alert_played_once):
       if new_alert == AudibleAlert.warningImmediate:
         self.ramp_start_volume = self.current_volume
