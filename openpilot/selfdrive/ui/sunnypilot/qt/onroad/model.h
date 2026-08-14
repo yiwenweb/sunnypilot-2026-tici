@@ -23,10 +23,7 @@ private:
                               const QPointF &chevron_pos, int height, int width);
   void drawBlindspot(QPainter &painter, const QRect &surface_rect, bool left_blindspot, bool right_blindspot);
   void drawRainbowPath(QPainter &painter, const QRect &surface_rect);
-  // Overlay orange highlight on the adjacent lane line matching the steering
-  // direction when normalized torque exceeds threshold. Ports mici raylib
-  // logic from openpilot/selfdrive/ui/mici/onroad/model_renderer.py.
-  void drawTorqueLaneHighlight(QPainter &painter, float torque);
+  void drawLaneLinesSP(QPainter &painter, float torque);
 
   QPolygonF left_blindspot_vertices;
   QPolygonF right_blindspot_vertices;

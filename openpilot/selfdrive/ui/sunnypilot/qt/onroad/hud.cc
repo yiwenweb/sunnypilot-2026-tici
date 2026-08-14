@@ -1000,7 +1000,10 @@ void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
   }
 
   float torque_line_radius = 1200.0f * scale;
-  float top_angle = -90.0f;
+  // Qt's arc angles are counter-clockwise from 3 o'clock, while raylib's
+  // angles are clockwise with -90 degrees at the top. Use +90 here so the
+  // large-radius arc is drawn along the bottom edge instead of off-screen.
+  float top_angle = 90.0f;
   float torque_bg_angle_span = torqueLineAlphaFilter * TORQUE_ANGLE_SPAN;
   float torque_start_angle = top_angle - torque_bg_angle_span / 2.0f;
 
