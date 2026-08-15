@@ -382,7 +382,7 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     }
 
     // TorqueBar
-    if (torqueBar || qEnvironmentVariableIntValue("TORQUE_BAR_TEST") == 1) {
+    if (torqueBar) {
       drawTorqueBar(p, surface_rect);
     }
 
@@ -996,20 +996,6 @@ void HudRendererSP::drawBlinker(QPainter &p, const QRect &surface_rect) {
 }
 
 void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
-  static int dbg = 0;
-  // TEMP TEST: force a visible torque bar for off-car verification.
-  static bool test_mode = qEnvironmentVariableIntValue("TORQUE_BAR_TEST") == 1;
-  if (test_mode) {
-    torqueFilterX = 0.6f;
-    torqueLineAlphaFilter = 1.0f;
-  }
-  if (dbg++ % 30 == 0) {
-    qWarning() << "[TorqueBar] filterX=" << torqueFilterX
-               << " alpha=" << torqueLineAlphaFilter
-               << " status=" << (int)status
-               << " test_mode=" << test_mode
-               << " rect=" << surface_rect;
-  }
   // The raylib reference (torque_bar.py) uses scale=3.0 on tici/mici big_ui
   // (2160x1080 logical space), giving radius = 1200*3 = 3600. The Qt surface_rect
   // (1800x1020, sidebar excluded) shares the same 1080-height logical space, so
