@@ -28,9 +28,15 @@ public slots:
   void updateToggles(bool _offroad);
 
 private:
+  void loadTorqueVersions();
+  QString getCurrentTorqueVersionLabel();
+  void showTorqueVersionDialog();
+
   Params params;
   bool offroad;
   std::map<std::string, ParamControlSP*> toggles;
+  std::map<std::string, float> torqueVersions;  // label -> version (from json)
 
+  ButtonControlSP *torqueVersionBtn;
   TorqueLateralControlCustomParams *torqueLateralControlCustomParams;
 };
