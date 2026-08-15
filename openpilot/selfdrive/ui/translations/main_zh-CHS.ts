@@ -111,7 +111,8 @@
     <message>
         <source>Set a timer to delay the auto lane change operation when the blinker is used. No nudge on the steering wheel is required to auto lane change if a timer is set. Default is Nudge.
 Please use caution when using this feature. Only use the blinker when traffic and road conditions permit.</source>
-        <translation />
+        <translation>使用转向灯时设置延迟自动变道操作的计时器。设置计时器后，自动变道无需拨动方向盘。默认是拨动（Nudge）。
+请谨慎使用此功能，仅在交通和路况允许时使用转向灯。</translation>
     </message>
     <message>
         <source>s</source>
@@ -689,8 +690,7 @@ This is the time after which settings UI closes automatically if user is not int
     </message>
     <message numerus="yes">
         <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.</source>
-        <translation>
-            <numerusform>&lt;b&gt;目前已有 %n 段&lt;/b&gt; 您的驾驶数据被纳入训练数据集。</numerusform>
+        <translation>目前已有 &lt;b&gt;%n段&lt;/b&gt; 驾驶数据在训练数据集中。<numerusform>&lt;b&gt;目前已有 %n 段&lt;/b&gt; 您的驾驶数据被纳入训练数据集。</numerusform>
         </translation>
     </message>
     <message>
@@ -839,8 +839,7 @@ DEPARTING</source>
     </message>
     <message numerus="yes">
         <source>Need at least %n character(s)!</source>
-        <translation>
-            <numerusform>至少需要 %n 个字符！</numerusform>
+        <translation>至少需要 %n 个字符！<numerusform>至少需要 %n 个字符！</numerusform>
         </translation>
     </message>
 </context>
@@ -1392,7 +1391,9 @@ The default software delay value is 0.2</source>
         <source>OpenStreetMap database is out of date. New maps must be downloaded if you wish to continue using OpenStreetMap data for Enhanced Speed Control and road name display.
 
 %1</source>
-        <translation />
+        <translation>OpenStreetMap数据库已过期。如需继续使用OpenStreetMap数据进行增强速度控制和道路名称显示，必须下载新地图。
+
+%1</translation>
     </message>
     <message>
         <source>&lt;b&gt;Unsupported branch detected&lt;/b&gt; - The current version of &lt;b&gt;&lt;u&gt;%1&lt;/u&gt;&lt;/b&gt; branch is no longer supported on the comma three. Please go to &lt;b&gt;[Device &gt; Software]&lt;/b&gt; and install a supported branch with &lt;b&gt;&lt;u&gt;-tici&lt;/u&gt;&lt;/b&gt; in the branch name for the comma three.</source>
@@ -1747,20 +1748,17 @@ Warning: You are on a metered connection!</source>
     <name>QObject</name>
     <message numerus="yes">
         <source>%n minute(s) ago</source>
-        <translation>
-            <numerusform>%n 分钟前</numerusform>
+        <translation>%n 分钟前<numerusform>%n 分钟前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>%n hour(s) ago</source>
-        <translation>
-            <numerusform>%n 小时前</numerusform>
+        <translation>%n 小时前<numerusform>%n 小时前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>%n day(s) ago</source>
-        <translation>
-            <numerusform>%n 天前</numerusform>
+        <translation>%n 天前<numerusform>%n 天前</numerusform>
         </translation>
     </message>
     <message>
@@ -2896,10 +2894,6 @@ Bottom</source>
 <context>
     <name>GeneralSP</name>
     <message>
-        <source />
-        <translation />
-    </message>
-    <message>
         <source>
 
 Steering lag calibration is %1% complete.</source>
@@ -2926,12 +2920,6 @@ Warning: You are on a metered connection!</source>
     <message>
         <source>Allows the driver to provide limited steering input while openpilot is engaged.</source>
         <translation>允许驾驶员在openpilot启用时提供有限的转向输入。</translation>
-    </message>
-    <message>
-        <source>Apply a custom timeout for settings UI."
-                                      "
-This is the time after which settings UI closes automatically if user is not interacting with the screen.</source>
-        <translation />
     </message>
     <message>
         <source>CANCEL</source>
@@ -2986,16 +2974,6 @@ This is the time after which settings UI closes automatically if user is not int
         <translation>启用自定义短按/长按增量来增加/减少巡航速度。</translation>
     </message>
     <message>
-        <source>Enable this for the car to learn and adapt its steering response time. "
-                   "Disable to use a fixed steering response time. Keeping this on provides the stock openpilot experience.</source>
-        <translation />
-    </message>
-    <message>
-        <source>Enables custom tuning for Torque lateral control. Modifying Lateral Acceleration Factor and Friction below will override the offline values indicated in the YAML files within "opendbc/car/torque_data". "
-       "The values will also be used live when "Manual Real-Time Tuning" toggle is enabled.</source>
-        <translation />
-    </message>
-    <message>
         <source>Enter search keywords, or leave blank to list all countries.</source>
         <translation>输入搜索关键词，或留空列出所有国家。</translation>
     </message>
@@ -3009,7 +2987,7 @@ This is the time after which settings UI closes automatically if user is not int
     </message>
     <message>
         <source>Experimental feature to enable stop and go for Subaru Global models with manual handbrake. Models with electric parking brake should keep this disabled. Thanks to martinl for this implementation!</source>
-        <translation />
+        <translation>实验性功能，为带手动手刹的Subaru Global车型启用启停。带电子手刹的车型建议保持禁用。感谢martinl的实现！</translation>
     </message>
     <message>
         <source>Experimental mode is currently unavailable on this car since the car's stock ACC is used for longitudinal control.</source>
@@ -3026,11 +3004,6 @@ This is the time after which settings UI closes automatically if user is not int
     <message>
         <source>Forget Wi-Fi Network "%1"?</source>
         <translation>忘记Wi-Fi网络 "%1"？</translation>
-    </message>
-    <message>
-        <source>Formerly known as &lt;b&gt;"NNFF"&lt;/b&gt;, this replaces the lateral &lt;b&gt;"torque"&lt;/b&gt; controller, "
-                                            "with one using a neural network trained on each car's (actually, each separate EPS firmware) driving data for increased controls accuracy.</source>
-        <translation />
     </message>
     <message>
         <source>If sponsorship status was not updated, please contact a moderator on our forum at https://community.sunnypilot.ai</source>
@@ -3057,12 +3030,6 @@ DEPARTING</source>
     <message>
         <source>Learn More</source>
         <translation>了解更多</translation>
-    </message>
-    <message>
-        <source>Let the driving model control the gas and brakes. sunnypilot will drive as it thinks a human would, including stopping for red lights and stop signs. "
-                                          "Since the driving model decides the speed to drive, the set speed will only act as an upper bound. This is an alpha quality feature; "
-                                          "mistakes should be expected.</source>
-        <translation />
     </message>
     <message>
         <source>MOUNT</source>
@@ -3093,17 +3060,8 @@ DEPARTING</source>
         <translation>注意：此提示音仅作为通知。驾驶员有责任观察环境并做出相应决策。</translation>
     </message>
     <message>
-        <source>On this car, sunnypilot defaults to the car's built-in ACC instead of sunnypilot's longitudinal control. "
-              "Enable this to switch to sunnypilot longitudinal control. Enabling Experimental mode is recommended when enabling sunnypilot longitudinal control alpha.</source>
-        <translation />
-    </message>
-    <message>
         <source>Only works above %4 %6.</source>
         <translation>仅在 %4 %6 以上工作。</translation>
-    </message>
-    <message>
-        <source>REGIST...</source>
-        <translation />
     </message>
     <message>
         <source>Refresh Model List</source>
@@ -3112,13 +3070,6 @@ DEPARTING</source>
     <message>
         <source>Scan the QR code and join us!</source>
         <translation>扫描二维码加入我们！</translation>
-    </message>
-    <message>
-        <source>Set a timer to delay the auto lane change operation when the blinker is used. "
-     "No nudge on the steering wheel is required to auto lane change if a timer is set. Default is Nudge.
-"
-     "Please use caution when using this feature. Only use the blinker when traffic and road conditions permit.</source>
-        <translation />
     </message>
     <message>
         <source>Show an indicator on the left side of the screen to display real-time vehicle acceleration and deceleration. This displays what the car is currently doing, not what the planner is requesting.</source>
@@ -3131,12 +3082,6 @@ DEPARTING</source>
     <message>
         <source>Speed Limit Source</source>
         <translation>限速数据来源</translation>
-    </message>
-    <message>
-        <source>Standard is recommended. In aggressive mode, sunnypilot will follow lead cars closer and be more aggressive with the gas and brake. "
-                                             "In relaxed mode sunnypilot will stay further away from lead cars. On supported cars, you can cycle through these personalities with "
-                                             "your steering wheel distance button.</source>
-        <translation />
     </message>
     <message>
         <source>Start the car to check car compatibility.</source>
@@ -3175,11 +3120,6 @@ DEPARTING</source>
         <translation>这将开始下载过程，可能需要一些时间完成。</translation>
     </message>
     <message>
-        <source>Turn off device screen or reduce brightness after driving starts. "
-       "It automatically brightens again when screen is touched or a visible alert is displayed.</source>
-        <translation />
-    </message>
-    <message>
         <source>Username '%1' doesn't exist on GitHub</source>
         <translation>用户名 '%1' 在GitHub上不存在</translation>
     </message>
@@ -3200,11 +3140,6 @@ DEPARTING</source>
         <translation>警告：低于 %5 %6 转弯时可能出现转向振荡，如遇到建议禁用此功能。</translation>
     </message>
     <message>
-        <source>Warning: This grants SSH access to all public keys in your GitHub settings. Never enter a GitHub username "
-                                       "other than your own. A comma employee will NEVER ask you to add their GitHub username.</source>
-        <translation />
-    </message>
-    <message>
         <source>When enabled, the speedometer on the onroad screen is not displayed.</source>
         <translation>启用后，行车屏幕上的速度表将不显示。</translation>
     </message>
@@ -3213,31 +3148,16 @@ DEPARTING</source>
         <translation>启用后，HUD上将绘制可视化转向指示器。</translation>
     </message>
     <message>
-        <source>When toggled on, this creates a prebuilt file to allow accelerated boot times. When toggled off, "
-         "it immediately removes the prebuilt file so compilation of locally edited cpp files can be made. "
-         "&lt;br&gt;&lt;br&gt;&lt;b&gt;To edit C++ files locally on device, you MUST first turn off this toggle so the changes can recompile.&lt;/b&gt;</source>
-        <translation />
-    </message>
-    <message>
         <source>You must accept the Terms and Conditions to use sunnypilot. Read the latest terms at &lt;span style='color: #465BEA;'&gt;https://comma.ai/terms&lt;/span&gt; before continuing.</source>
-        <translation />
+        <translation>您必须接受条款和条件才能使用sunnypilot。继续前，请阅读 &lt;span style='color: #465BEA;'&gt;https://comma.ai/terms&lt;/span&gt; 的最新条款。</translation>
     </message>
     <message>
         <source>for "%1"</source>
         <translation>为 "%1"</translation>
     </message>
     <message>
-        <source>https://github.com/commaai/openpilot.git" "?</source>
-        <translation />
-    </message>
-    <message>
         <source>on Metered</source>
         <translation>按流量计费</translation>
-    </message>
-    <message>
-        <source>openpilot is continuously calibrating, resetting is rarely required. "
-             "Resetting calibration will restart openpilot if the car is powered on.</source>
-        <translation />
     </message>
     <message>
         <source>sunnypilot Community</source>
@@ -3245,7 +3165,7 @@ DEPARTING</source>
     </message>
     <message>
         <source>sunnypilot defaults to driving in &lt;b&gt;chill mode&lt;/b&gt;. Experimental mode enables &lt;b&gt;alpha-level features&lt;/b&gt; that aren't ready for chill mode. Experimental features are listed below:</source>
-        <translation />
+        <translation>sunnypilot默认以&lt;b&gt;chill mode&lt;/b&gt;（休闲模式）驾驶。实验模式启用尚未准备好用于休闲模式的&lt;b&gt;alpha级功能&lt;/b&gt;。实验功能如下：</translation>
     </message>
     <message>
         <source>sunnypilot longitudinal control may come in a future update.</source>
@@ -3312,12 +3232,6 @@ Firehose模式允许您最大化训练数据上传，以改善openpilot的驾驶
 <context>
     <name>ModelsPanelSP</name>
     <message>
-        <source>Adjust the software delay when Live Learning Steer Delay is toggled off."
-                                         "
-The default software delay value is 0.2</source>
-        <translation />
-    </message>
-    <message>
         <source>Cancel Download</source>
         <translation>取消下载</translation>
     </message>
@@ -3364,7 +3278,7 @@ Bottom</source>
     <name>DeveloperPanelSP</name>
     <message>
         <source>Copyparty is a very capable file server, you can use it to download your routes, view your logs and even make some edits on some files from your browser. Requires you to connect to your comma locally via it's IP.</source>
-        <translation />
+        <translation>Copyparty是一个功能强大的文件服务器，您可以通过浏览器下载路线、查看日志，甚至编辑一些文件。需要通过IP在本地连接您的comma设备。</translation>
     </message>
     <message>
         <source>Enable GitHub runner service</source>
@@ -3411,12 +3325,6 @@ Are you sure you want to delete all the maps?</source>
         <translation>这将删除所有已下载的地图
 
 确定要删除所有地图吗？</translation>
-    </message>
-    <message>
-        <source>This will delete ALL downloaded models from the cache"
-                            "&lt;br/&gt;&lt;u&gt;except the currently active model&lt;/u&gt;."
-                            "&lt;br/&gt;&lt;br/&gt;Are you sure you want to continue?</source>
-        <translation />
     </message>
     <message>
         <source>Yes, delete all the maps.</source>
@@ -3477,17 +3385,6 @@ Are you sure you want to delete all the maps?</source>
     <message>
         <source>sunnylink Dongle ID not found. This may be due to weak internet connection or sunnylink registration issue. Please reboot and try again.</source>
         <translation>未找到sunnylink Dongle ID。可能是网络连接弱或sunnylink注册问题。请重启后重试。</translation>
-    </message>
-    <message>
-        <source>sunnylink enables secured remote access to your comma device from anywhere, "
-                           "including settings management, remote monitoring, real-time dashboard, etc.</source>
-        <translation />
-    </message>
-    <message>
-        <source>sunnylink is designed to be enabled as part of sunnypilot's core functionality. "
-                           "If sunnylink is disabled, features such as settings management, remote monitoring, "
-                           "real-time dashboards will be unavailable.</source>
-        <translation />
     </message>
     <message>
         <source>🎉Welcome back! We're excited to see you've enabled sunnylink again! 🚀</source>
