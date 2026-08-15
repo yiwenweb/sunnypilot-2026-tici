@@ -20,7 +20,7 @@ JpegEncoder::JpegEncoder(const std::string &publish_name, int width, int height)
   assert(codec_ctx);
   codec_ctx->width = thumbnail_width;
   codec_ctx->height = thumbnail_height;
-  codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+  codec_ctx->pix_fmt = AV_PIX_FMT_YUVJ420P;
   codec_ctx->time_base = (AVRational){1, 1};
   codec_ctx->color_range = AVCOL_RANGE_JPEG;
   codec_ctx->flags |= AV_CODEC_FLAG_QSCALE;
