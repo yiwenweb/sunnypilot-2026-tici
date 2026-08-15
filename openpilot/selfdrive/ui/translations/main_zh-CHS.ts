@@ -206,12 +206,13 @@ Please use caution when using this feature. Only use the blinker when traffic an
         <source>On this car, sunnypilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.</source>
         <translation>此车默认使用原车ACC而非openpilot纵向控制。启用此项可切换到openpilot纵向控制。建议同时启用实验模式。</translation>
     </message>
-</context>
-<context>
-    <name>DeveloperPanelSP</name>
+<message>
+        <source>Copyparty is a very capable file server, you can use it to download your routes, view your logs and even make some edits on some files from your browser. Requires you to connect to your comma locally via it's IP.</source>
+        <translation>Copyparty是一个功能强大的文件服务器，您可以通过浏览器下载路线、查看日志，甚至编辑一些文件。需要通过IP在本地连接您的comma设备。</translation>
+    </message>
     <message>
-        <source>Show Advanced Controls</source>
-        <translation>显示高级控制</translation>
+        <source>Enable GitHub runner service</source>
+        <translation>启用GitHub runner服务</translation>
     </message>
     <message>
         <source>Toggle visibility of advanced sunnypilot controls.
@@ -219,9 +220,9 @@ This only toggles the visibility of the controls; it does not toggle the actual 
         <translation>切换高级sunnypilot控件的可见性。
 这仅切换控件的可见性，不会切换实际控件的启用/禁用状态。</translation>
     </message>
-    <message>
-        <source>Enable GitHub runner service</source>
-        <translation>启用 GitHub Runner</translation>
+<message>
+        <source>Show Advanced Controls</source>
+        <translation>显示高级控制</translation>
     </message>
     <message>
         <source>Enables or disables the github runner service.</source>
@@ -255,11 +256,7 @@ This only toggles the visibility of the controls; it does not toggle the actual 
         <source>Enable Copyparty service</source>
         <translation>启用 Copyparty</translation>
     </message>
-    <message>
-        <source>Copyparty is a very capable file server, you can use it to download your routes, view your logs and even make some edits on some files from your browser. Requires you to connect to your comma locally via it's IP.</source>
-        <translation>Copyparty文件服务器，可用于下载路线、查看日志甚至编辑文件。需要通过设备IP本地连接。</translation>
-    </message>
-</context>
+    </context>
 <context>
     <name>DevicePanel</name>
     <message>
@@ -434,10 +431,27 @@ Steering lag calibration is complete.</source>
         <source>sunnypilot requires the device to be mounted within 4° left or right and within 5° up or 9° down.</source>
         <translation>sunnypilot 要求设备安装偏差左右 4° 以内，上下 5°/9° 以内。</translation>
     </message>
-</context>
-<context>
-    <name>DevicePanelSP</name>
+<message>
+        <source>%1 updates requires a reboot.&lt;br&gt;Reboot now?</source>
+        <translation>%1个更新需要重启。&lt;br&gt;立即重启？</translation>
+    </message>
     <message>
+        <source>Enable "Always Offroad" in Device panel, or turn vehicle off to select an option.</source>
+        <translation>在设备面板中启用"始终离线"，或关闭车辆以选择选项。</translation>
+    </message>
+    <message>
+        <source>Enable "Always Offroad" in Device panel, or turn vehicle off to toggle.</source>
+        <translation>在设备面板中启用"始终离线"，或关闭车辆以切换。</translation>
+    </message>
+    <message>
+        <source>Offroad Mode</source>
+        <translation>离线模式</translation>
+    </message>
+    <message>
+        <source>Wake-Up Behavior</source>
+        <translation>唤醒行为</translation>
+    </message>
+<message>
         <source>Quiet Mode</source>
         <translation>静音模式</translation>
     </message>
@@ -450,44 +464,12 @@ Steering lag calibration is complete.</source>
         <translation>新手指南</translation>
     </message>
     <message>
-        <source>Regulatory</source>
-        <translation>监管信息</translation>
-    </message>
-    <message>
         <source>Language</source>
         <translation>语言</translation>
     </message>
     <message>
         <source>Reset Settings</source>
         <translation>重置设置</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to review the training guide?</source>
-        <translation>您确定要查看新手指南吗？</translation>
-    </message>
-    <message>
-        <source>Review</source>
-        <translation>预览</translation>
-    </message>
-    <message>
-        <source>Select a language</source>
-        <translation>选择语言</translation>
-    </message>
-    <message>
-        <source>Wake-Up Behavior</source>
-        <translation>唤醒行为</translation>
-    </message>
-    <message>
-        <source>Reboot</source>
-        <translation>重启</translation>
-    </message>
-    <message>
-        <source>Power Off</source>
-        <translation>关机</translation>
-    </message>
-    <message>
-        <source>Offroad Mode</source>
-        <translation>离线模式</translation>
     </message>
     <message>
         <source>Are you sure you want to exit Always Offroad mode?</source>
@@ -508,10 +490,6 @@ Steering lag calibration is complete.</source>
     <message>
         <source>Are you sure you want to reset all sunnypilot settings to default? Once the settings are reset, there is no going back.</source>
         <translation>确定要将所有 sunnypilot 设置重置为默认值吗？重置后无法恢复。</translation>
-    </message>
-    <message>
-        <source>Reset</source>
-        <translation>重置</translation>
     </message>
     <message>
         <source>The reset cannot be undone. You have been warned.</source>
@@ -729,24 +707,16 @@ Firehose模式允许您最大化训练数据上传，以改善openpilot的驾驶
         <source>MAX</source>
         <translation>最高定速</translation>
     </message>
-</context>
-<context>
-    <name>HudRendererSP</name>
-    <message>
-        <source>km/h</source>
-        <translation>km/h</translation>
-    </message>
-    <message>
-        <source>mph</source>
-        <translation>mph</translation>
-    </message>
-    <message>
+<message>
         <source>GREEN
 LIGHT</source>
-        <translation>绿
-灯</translation>
+        <translation>绿灯</translation>
     </message>
     <message>
+        <source>STOPPED</source>
+        <translation>已停车</translation>
+    </message>
+<message>
         <source>LEAD VEHICLE
 DEPARTING</source>
         <translation>前车
@@ -784,11 +754,7 @@ DEPARTING</source>
         <source>AHEAD</source>
         <translation>前方</translation>
     </message>
-    <message>
-        <source>MAX</source>
-        <translation>最高定速</translation>
-    </message>
-</context>
+    </context>
 <context>
     <name>HyundaiSettings</name>
     <message>
@@ -964,6 +930,26 @@ DEPARTING</source>
     <message>
         <source>Speed Limit</source>
         <translation>限速</translation>
+    </message>
+<message>
+        <source>Disable the sunnypilot Longitudinal Control (alpha) toggle to allow Intelligent Cruise Button Management.</source>
+        <translation>禁用sunnypilot纵向控制(alpha)切换以启用智能巡航按键管理。</translation>
+    </message>
+    <message>
+        <source>Dynamic Experimental Control (DEC)</source>
+        <translation>动态实验控制 (DEC)</translation>
+    </message>
+    <message>
+        <source>Intelligent Cruise Button Management is currently unavailable on this platform.</source>
+        <translation>智能巡航按键管理当前在此平台上不可用。</translation>
+    </message>
+    <message>
+        <source>sunnypilot Longitudinal Control (Alpha)</source>
+        <translation>sunnypilot纵向控制 (Alpha)</translation>
+    </message>
+    <message>
+        <source>sunnypilot Longitudinal Control is the default longitudinal control for this platform.</source>
+        <translation>sunnypilot纵向控制是此平台的默认纵向控制。</translation>
     </message>
 </context>
 <context>
@@ -1236,6 +1222,18 @@ The default software delay value is 0.2</source>
         <source>Set the maximum speed for lane turn desires. Default is 19 %1.</source>
         <translation>设置车道转弯最高速度。默认19 %1。</translation>
     </message>
+<message>
+        <source>Cancel Download</source>
+        <translation>取消下载</translation>
+    </message>
+    <message>
+        <source>Off-Policy Model</source>
+        <translation>离线策略模型</translation>
+    </message>
+    <message>
+        <source>On-Policy Model</source>
+        <translation>在线策略模型</translation>
+    </message>
 </context>
 <context>
     <name>MultiOptionDialog</name>
@@ -1266,10 +1264,7 @@ The default software delay value is 0.2</source>
         <source>Wrong password</source>
         <translation>密码错误</translation>
     </message>
-</context>
-<context>
-    <name>NetworkingSP</name>
-    <message>
+<message>
         <source>Scan</source>
         <translation>扫描</translation>
     </message>
@@ -1416,10 +1411,7 @@ The default software delay value is 0.2</source>
         <source> ALERT</source>
         <translation> 警报</translation>
     </message>
-</context>
-<context>
-    <name>OffroadHomeSP</name>
-    <message>
+<message>
         <source>ALWAYS OFFROAD ACTIVE</source>
         <translation>始终离线模式已激活</translation>
     </message>
@@ -1579,7 +1571,23 @@ Warning: You are on a metered connection!</source>
         <source>Time remaining: </source>
         <translation>剩余时间：</translation>
     </message>
-</context>
+<message>
+        <source>Search Country</source>
+        <translation>搜索国家</translation>
+    </message>
+    <message>
+        <source>Search State</source>
+        <translation>搜索州/省</translation>
+    </message>
+    <message>
+        <source>Select Country</source>
+        <translation>选择国家</translation>
+    </message>
+    <message>
+        <source>Select State</source>
+        <translation>选择州/省</translation>
+    </message>
+    </context>
 <context>
     <name>PairingPopup</name>
     <message>
@@ -1612,17 +1620,6 @@ Warning: You are on a metered connection!</source>
     <message>
         <source>Enable</source>
         <translation>启用</translation>
-    </message>
-</context>
-<context>
-    <name>ParamControlSP</name>
-    <message>
-        <source>Enable</source>
-        <translation>启用</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>取消</translation>
     </message>
 </context>
 <context>
@@ -1863,32 +1860,9 @@ Data</source>
         <source>Firehose</source>
         <translation>Firehose</translation>
     </message>
-</context>
-<context>
-    <name>SettingsWindowSP</name>
-    <message>
-        <source>×</source>
-        <translation>×</translation>
-    </message>
-    <message>
-        <source>Device</source>
-        <translation>设备</translation>
-    </message>
-    <message>
-        <source>Network</source>
-        <translation>网络</translation>
-    </message>
-    <message>
+<message>
         <source>sunnylink</source>
         <translation>sunnylink</translation>
-    </message>
-    <message>
-        <source>Toggles</source>
-        <translation>设定</translation>
-    </message>
-    <message>
-        <source>Software</source>
-        <translation>软件</translation>
     </message>
     <message>
         <source>Models</source>
@@ -1917,14 +1891,6 @@ Data</source>
     <message>
         <source>Vehicle</source>
         <translation>车辆</translation>
-    </message>
-    <message>
-        <source>Firehose</source>
-        <translation>Firehose</translation>
-    </message>
-    <message>
-        <source>Developer</source>
-        <translation>开发人员</translation>
     </message>
     <message>
         <source>Display</source>
@@ -2020,34 +1986,19 @@ Data</source>
         <source>5G</source>
         <translation>5G</translation>
     </message>
-</context>
-<context>
-    <name>SidebarSP</name>
-    <message>
+<message>
+        <source>SUNNYLINK</source>
+        <translation>SUNNYLINK</translation>
+    </message>
+<message>
         <source>DISABLED</source>
         <translation>已禁用</translation>
-    </message>
-    <message>
-        <source>OFFLINE</source>
-        <translation>离线</translation>
     </message>
     <message>
         <source>REGIST...</source>
         <translation>注册中...</translation>
     </message>
-    <message>
-        <source>ONLINE</source>
-        <translation>在线</translation>
-    </message>
-    <message>
-        <source>ERROR</source>
-        <translation>连接出错</translation>
-    </message>
-    <message>
-        <source>SUNNYLINK</source>
-        <translation>SUNNYLINK</translation>
-    </message>
-</context>
+    </context>
 <context>
     <name>SoftwarePanel</name>
     <message>
@@ -2122,10 +2073,19 @@ Data</source>
         <source>never</source>
         <translation>从未更新</translation>
     </message>
-</context>
-<context>
-    <name>SoftwarePanelSP</name>
+<message>
+        <source>Quickboot mode requires updates to be disabled.&lt;br&gt;Enable 'Disable Updates' in the Software panel first.</source>
+        <translation>快速启动模式需要禁用更新。&lt;br&gt;请先在软件面板中启用"禁用更新"。</translation>
+    </message>
     <message>
+        <source>When enabled, software updates will be disabled. &lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
+        <translation>启用后，软件更新将被禁用。&lt;b&gt;需要重启才能生效。&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>When enabled, software updates will be disabled.&lt;br&gt;&lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
+        <translation>启用后，软件更新将被禁用。&lt;br&gt;&lt;b&gt;需要重启才能生效。&lt;/b&gt;</translation>
+    </message>
+<message>
         <source>Search Branch</source>
         <translation>搜索分支</translation>
     </message>
@@ -2138,16 +2098,8 @@ Data</source>
         <translation>禁用更新</translation>
     </message>
     <message>
-        <source>When enabled, software updates will be disabled. &lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
-        <translation>启用后软件更新将被禁用。&lt;b&gt;需重启生效。&lt;/b&gt;</translation>
-    </message>
-    <message>
         <source>No branches found for keywords: %1</source>
         <translation>未找到匹配 %1 的分支</translation>
-    </message>
-    <message>
-        <source>Select a branch</source>
-        <translation>选择分支</translation>
     </message>
     <message>
         <source>%1 updates requires a reboot.&lt;br&gt;Reboot now?</source>
@@ -2156,10 +2108,6 @@ Data</source>
     <message>
         <source>Reboot</source>
         <translation>重启</translation>
-    </message>
-    <message>
-        <source>When enabled, software updates will be disabled.&lt;br&gt;&lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
-        <translation>启用后软件更新将被禁用。&lt;br&gt;&lt;b&gt;需重启生效。&lt;/b&gt;</translation>
     </message>
     <message>
         <source>Please enable always offroad mode or turn off vehicle to adjust these toggles</source>
@@ -2436,7 +2384,23 @@ Data</source>
         <source>Click the sponsor button for more details</source>
         <translation>点击赞助按钮详情</translation>
     </message>
-</context>
+<message>
+        <source>Enable sunnylink uploader (infrastructure test)</source>
+        <translation>启用sunnylink上传器（基础设施测试）</translation>
+    </message>
+    <message>
+        <source>Re-enter the "sunnylink" panel to verify sponsorship status</source>
+        <translation>重新进入"sunnylink"面板以验证赞助状态</translation>
+    </message>
+    <message>
+        <source>Scan the QR code to visit sunnyhaibin's GitHub Sponsors page</source>
+        <translation>扫描二维码访问sunnyhaibin的GitHub赞助页面</translation>
+    </message>
+    <message>
+        <source>sunnylink</source>
+        <translation>sunnylink</translation>
+    </message>
+    </context>
 <context>
     <name>SunnylinkSponsorPopup</name>
     <message>
@@ -2822,6 +2786,26 @@ Bottom</source>
         <source>Display real-time parameters and metrics from various sources.</source>
         <translation>显示来自各数据源的实时参数和指标。</translation>
     </message>
+<message>
+        <source>Auto Lane Change: Delay with Blind Spot</source>
+        <translation>自动变道：盲点延迟</translation>
+    </message>
+    <message>
+        <source>Display Turn Signals</source>
+        <translation>显示转向信号</translation>
+    </message>
+    <message>
+        <source>Display useful metrics below the chevron that tracks the lead car (only applicable to cars with sunnypilot longitudinal control).</source>
+        <translation>在跟踪前车的箭头下方显示有用指标（仅适用于具有sunnypilot纵向控制的车辆）。</translation>
+    </message>
+    <message>
+        <source>Real-time Acceleration Bar</source>
+        <translation>实时加速条</translation>
+    </message>
+    <message>
+        <source>Steering Arc</source>
+        <translation>转向弧线</translation>
+    </message>
 </context>
 <context>
     <name>WiFiPromptWidget</name>
@@ -3199,30 +3183,6 @@ DEPARTING</source>
 </context>
 
 <context>
-    <name>DevicePanelSP</name>
-    <message>
-        <source>%1 updates requires a reboot.&lt;br&gt;Reboot now?</source>
-        <translation>%1个更新需要重启。&lt;br&gt;立即重启？</translation>
-    </message>
-    <message>
-        <source>Enable "Always Offroad" in Device panel, or turn vehicle off to select an option.</source>
-        <translation>在设备面板中启用"始终离线"，或关闭车辆以选择选项。</translation>
-    </message>
-    <message>
-        <source>Enable "Always Offroad" in Device panel, or turn vehicle off to toggle.</source>
-        <translation>在设备面板中启用"始终离线"，或关闭车辆以切换。</translation>
-    </message>
-    <message>
-        <source>Offroad Mode</source>
-        <translation>离线模式</translation>
-    </message>
-    <message>
-        <source>Wake-Up Behavior</source>
-        <translation>唤醒行为</translation>
-    </message>
-</context>
-
-<context>
     <name>FirehosePanel</name>
     <message>
         <source>sunnypilot learns to drive by watching humans, like you, drive.
@@ -3234,215 +3194,4 @@ Firehose模式允许您最大化训练数据上传，以改善openpilot的驾驶
     </message>
 </context>
 
-<context>
-    <name>ModelsPanelSP</name>
-    <message>
-        <source>Cancel Download</source>
-        <translation>取消下载</translation>
-    </message>
-    <message>
-        <source>Off-Policy Model</source>
-        <translation>离线策略模型</translation>
-    </message>
-    <message>
-        <source>On-Policy Model</source>
-        <translation>在线策略模型</translation>
-    </message>
-</context>
-
-<context>
-    <name>VisualsPanelSP</name>
-    <message>
-        <source>Auto Lane Change: Delay with Blind Spot</source>
-        <translation>自动变道：盲点延迟</translation>
-    </message>
-    <message>
-        <source>Display Turn Signals</source>
-        <translation>显示转向信号</translation>
-    </message>
-    <message>
-        <source>Display useful metrics below the chevron that tracks the lead car (only applicable to cars with sunnypilot longitudinal control).</source>
-        <translation>在跟踪前车的箭头下方显示有用指标（仅适用于具有sunnypilot纵向控制的车辆）。</translation>
-    </message>
-    <message>
-        <source>Real-time Acceleration Bar</source>
-        <translation>实时加速条</translation>
-    </message>
-    <message>
-        <source>Right &amp;&amp;
-Bottom</source>
-        <translation>右侧和底部</translation>
-    </message>
-    <message>
-        <source>Steering Arc</source>
-        <translation>转向弧线</translation>
-    </message>
-</context>
-
-<context>
-    <name>DeveloperPanelSP</name>
-    <message>
-        <source>Copyparty is a very capable file server, you can use it to download your routes, view your logs and even make some edits on some files from your browser. Requires you to connect to your comma locally via it's IP.</source>
-        <translation>Copyparty是一个功能强大的文件服务器，您可以通过浏览器下载路线、查看日志，甚至编辑一些文件。需要通过IP在本地连接您的comma设备。</translation>
-    </message>
-    <message>
-        <source>Enable GitHub runner service</source>
-        <translation>启用GitHub runner服务</translation>
-    </message>
-    <message>
-        <source>Toggle visibility of advanced sunnypilot controls.
-This only toggles the visibility of the controls; it does not toggle the actual control enabled/disabled state.</source>
-        <translation>切换高级sunnypilot控件的可见性。
-这仅切换控件的可见性，不会切换实际控件的启用/禁用状态。</translation>
-    </message>
-</context>
-
-<context>
-    <name>OsmPanelSP</name>
-    <message>
-        <source>Country</source>
-        <translation>国家</translation>
-    </message>
-    <message>
-        <source>Fetching Country list...</source>
-        <translation>正在获取国家列表...</translation>
-    </message>
-    <message>
-        <source>Search Country</source>
-        <translation>搜索国家</translation>
-    </message>
-    <message>
-        <source>Search State</source>
-        <translation>搜索州/省</translation>
-    </message>
-    <message>
-        <source>Select Country</source>
-        <translation>选择国家</translation>
-    </message>
-    <message>
-        <source>Select State</source>
-        <translation>选择州/省</translation>
-    </message>
-    <message>
-        <source>This will delete ALL downloaded maps
-
-Are you sure you want to delete all the maps?</source>
-        <translation>这将删除所有已下载的地图
-
-确定要删除所有地图吗？</translation>
-    </message>
-    <message>
-        <source>Yes, delete all the maps.</source>
-        <translation>是的，删除所有地图。</translation>
-    </message>
-</context>
-
-<context>
-    <name>LongitudinalPanelSP</name>
-    <message>
-        <source>Disable the sunnypilot Longitudinal Control (alpha) toggle to allow Intelligent Cruise Button Management.</source>
-        <translation>禁用sunnypilot纵向控制(alpha)切换以启用智能巡航按键管理。</translation>
-    </message>
-    <message>
-        <source>Dynamic Experimental Control (DEC)</source>
-        <translation>动态实验控制 (DEC)</translation>
-    </message>
-    <message>
-        <source>Intelligent Cruise Button Management is currently unavailable on this platform.</source>
-        <translation>智能巡航按键管理当前在此平台上不可用。</translation>
-    </message>
-    <message>
-        <source>sunnypilot Longitudinal Control (Alpha)</source>
-        <translation>sunnypilot纵向控制 (Alpha)</translation>
-    </message>
-    <message>
-        <source>sunnypilot Longitudinal Control is the default longitudinal control for this platform.</source>
-        <translation>sunnypilot纵向控制是此平台的默认纵向控制。</translation>
-    </message>
-</context>
-
-<context>
-    <name>SunnylinkPanelSP</name>
-    <message>
-        <source>Enable sunnylink uploader (infrastructure test)</source>
-        <translation>启用sunnylink上传器（基础设施测试）</translation>
-    </message>
-    <message>
-        <source>Pair your GitHub account to grant your device sponsor benefits, including API access on sunnylink.</source>
-        <translation>配对您的GitHub账户以授予设备赞助者权益，包括sunnylink的API访问。</translation>
-    </message>
-    <message>
-        <source>Re-enter the "sunnylink" panel to verify sponsorship status</source>
-        <translation>重新进入"sunnylink"面板以验证赞助状态</translation>
-    </message>
-    <message>
-        <source>Scan the QR code to visit sunnyhaibin's GitHub Sponsors page</source>
-        <translation>扫描二维码访问sunnyhaibin的GitHub赞助页面</translation>
-    </message>
-    <message>
-        <source>Sponsorship isn't required for basic backup/restore</source>
-        <translation>基本备份/恢复不需要赞助</translation>
-    </message>
-    <message>
-        <source>sunnylink</source>
-        <translation>sunnylink</translation>
-    </message>
-    <message>
-        <source>sunnylink Dongle ID not found. This may be due to weak internet connection or sunnylink registration issue. Please reboot and try again.</source>
-        <translation>未找到sunnylink Dongle ID。可能是网络连接弱或sunnylink注册问题。请重启后重试。</translation>
-    </message>
-    <message>
-        <source>🎉Welcome back! We're excited to see you've enabled sunnylink again! 🚀</source>
-        <translation>🎉欢迎回来！很高兴看到您重新启用了sunnylink！🚀</translation>
-    </message>
-    <message>
-        <source>👋Not going to lie, it's sad to see you disabled sunnylink 😢, but we'll be here when you're ready to come back 🎉.</source>
-        <translation>👋说实话，看到您禁用了sunnylink我们很难过😢，但我们会在这里等您准备好回来🎉。</translation>
-    </message>
-</context>
-
-<context>
-    <name>ExternalStorageSP</name>
-    <message>
-        <source>Extend your comma device's storage by inserting a USB drive into the aux port.</source>
-        <translation>通过将USB驱动器插入辅助端口来扩展comma设备的存储。</translation>
-    </message>
-</context>
-
-<context>
-    <name>HudRendererSP</name>
-    <message>
-        <source>GREEN
-LIGHT</source>
-        <translation>绿灯</translation>
-    </message>
-    <message>
-        <source>STOPPED</source>
-        <translation>已停车</translation>
-    </message>
-</context>
-
-<context>
-    <name>SoftwarePanelSP</name>
-    <message>
-        <source>Quickboot mode requires updates to be disabled.&lt;br&gt;Enable 'Disable Updates' in the Software panel first.</source>
-        <translation>快速启动模式需要禁用更新。&lt;br&gt;请先在软件面板中启用"禁用更新"。</translation>
-    </message>
-    <message>
-        <source>When enabled, software updates will be disabled. &lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
-        <translation>启用后，软件更新将被禁用。&lt;b&gt;需要重启才能生效。&lt;/b&gt;</translation>
-    </message>
-    <message>
-        <source>When enabled, software updates will be disabled.&lt;br&gt;&lt;b&gt;This requires a reboot to take effect.&lt;/b&gt;</source>
-        <translation>启用后，软件更新将被禁用。&lt;br&gt;&lt;b&gt;需要重启才能生效。&lt;/b&gt;</translation>
-    </message>
-</context>
-
-<context>
-    <name>SidebarSP</name>
-    <message>
-        <source>SUNNYLINK</source>
-        <translation>SUNNYLINK</translation>
-    </message>
-</context>
 </TS>
