@@ -730,21 +730,22 @@ void HudRendererSP::drawUpcomingSpeedLimit(QPainter &p) {
 void HudRendererSP::drawRoadName(QPainter &p, const QRect &surface_rect) {
   if (!roadName || roadNameStr.isEmpty()) return;
 
-  // Measure text to size container
-  p.setFont(InterFont(46, QFont::DemiBold));
+  // Measure text to size container (font enlarged 20% from 46 -> 55)
+  p.setFont(InterFont(55, QFont::DemiBold));
   QFontMetrics fm(p.font());
 
   int text_width = fm.horizontalAdvance(roadNameStr);
-  int padding = 40;
+  int padding = 48;
   int rect_width = text_width + padding;
 
   // Constrain to reasonable bounds
-  int min_width = 200;
+  int min_width = 240;
   int max_width = surface_rect.width() - 40;
   rect_width = std::max(min_width, std::min(rect_width, max_width));
 
-  // Center at top of screen
-  QRect road_rect(surface_rect.width() / 2 - rect_width / 2, -4, rect_width, 60);
+  // Center at top of screen (match raylib: rect.x + width/2 - rect_width/2, rect.y - 4)
+  // Height enlarged 20% from 60 -> 72
+  QRect road_rect(surface_rect.x() + surface_rect.width() / 2 - rect_width / 2, surface_rect.y() - 4, rect_width, 72);
 
   p.setPen(Qt::NoPen);
   p.setBrush(QColor(0, 0, 0, 120));
@@ -891,10 +892,10 @@ void HudRendererSP::drawCurrentSpeedSP(QPainter &p, const QRect &surface_rect) {
   QString speedStr = QString::number(std::nearbyint(speed));
 
   p.setFont(InterFont(176, QFont::Bold));
-  HudRenderer::drawText(p, surface_rect.center().x(), 210, speedStr);
+  HudRenderer::drawText(p, surface_rect.center().x(), 235, speedStr);
 
   p.setFont(InterFont(66));
-  HudRenderer::drawText(p, surface_rect.center().x(), 290, is_metric ? tr("km/h") : tr("mph"), 200);
+  HudRenderer::drawText(p, surface_rect.center().x(), 315, is_metric ? tr("km/h") : tr("mph"), 200);
 }
 
 void HudRendererSP::drawBlinker(QPainter &p, const QRect &surface_rect) {
@@ -982,6 +983,13 @@ void HudRendererSP::drawBlinker(QPainter &p, const QRect &surface_rect) {
 }
 
 void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
+  static int dbg = 0;
+  if (dbg++ % 30 == 0) {
+    qWarning() << "[TorqueBar] filterX=" << torqueFilterX
+               << " alpha=" << torqueLineAlphaFilter
+               << " status=" << (int)status
+               << " rect=" << surface_rect;
+  }
   // Qt UI uses the same 2160x1080 logical coordinate space as the raylib big-screen
   // UI (DEVICE_SCREEN_SIZE = {2160, 1080}), so scale must be 1.0 (not 3.0) to match
   // the reference torque_bar.py rendering exactly.
@@ -1004,9 +1012,9 @@ void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
   }
 
   float torque_line_radius = 1200.0f * scale;
-  // Qt's arc angles are counter-clockwise from 3 o'clock, while raylib's
-  // angles are clockwise with -90 degrees at the top. Use +90 here so the
-  // large-radius arc is drawn along the bottom edge instead of off-screen.
+  // raylib uses math coords (x=cos, y=sin with Y down) where -90 maps to the
+  // top of the circle. Qt's drawArc is CCW-positive from 3 o'clock, so the
+  // top (12 o'clock) is +90 degrees. top_angle must be +90 to match raylib.
   float top_angle = 90.0f;
   float torque_bg_angle_span = torqueLineAlphaFilter * TORQUE_ANGLE_SPAN;
   float torque_start_angle = top_angle - torque_bg_angle_span / 2.0f;
