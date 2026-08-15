@@ -12,19 +12,24 @@
 #include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/controls.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/expandable_row.h"
 
+// Matches raylib ONROAD_BRIGHTNESS_TIMER_VALUES (seconds): {0:3,1:5,2:7,3:10,4:15,5:30,6:60...15:600}
 static const QMap<QString, QString> onroadScreenOffTimerOptions = {
-  {"0", "15"},
-  {"1", "30"},
-  {"2", "60"},
-  {"3", "120"},
-  {"4", "180"},
-  {"5", "240"},
-  {"6", "300"},
-  {"7", "360"},
-  {"8", "420"},
-  {"9", "480"},
-  {"10", "540"},
-  {"11", "600"}
+  {"0", "3"},
+  {"1", "5"},
+  {"2", "7"},
+  {"3", "10"},
+  {"4", "15"},
+  {"5", "30"},
+  {"6", "60"},
+  {"7", "120"},
+  {"8", "180"},
+  {"9", "240"},
+  {"10", "300"},
+  {"11", "360"},
+  {"12", "420"},
+  {"13", "480"},
+  {"14", "540"},
+  {"15", "600"}
 };
 
 class OnroadScreenBrightnessControl : public ExpandableToggleRow {

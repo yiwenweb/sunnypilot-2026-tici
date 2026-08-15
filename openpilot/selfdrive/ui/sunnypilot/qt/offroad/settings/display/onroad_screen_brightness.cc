@@ -22,14 +22,14 @@ OnroadScreenBrightnessControl::OnroadScreenBrightnessControl(const QString &para
     tr("Onroad Brightness Delay"),
     "",
     "",
-    {0, 11}, 1, true, &onroadScreenOffTimerOptions);
+    {0, 15}, 1, true, &onroadScreenOffTimerOptions);
 
   onroadScreenBrightness = new OptionControlSP(
     "OnroadScreenOffBrightness",
     tr("Onroad Brightness"),
     "",
     "",
-    {0, 90}, 10, true);
+    {0, 22}, 1, true);
 
   connect(onroadScreenOffTimer, &OptionControlSP::updateLabels, this, &OnroadScreenBrightnessControl::refresh);
   connect(onroadScreenBrightness, &OptionControlSP::updateLabels, this, &OnroadScreenBrightnessControl::refresh);
@@ -42,13 +42,19 @@ OnroadScreenBrightnessControl::OnroadScreenBrightnessControl(const QString &para
 }
 
 void OnroadScreenBrightnessControl::refresh() {
-  // Driving Screen Off Timer
-  int valTimer = std::atoi(params.get("OnroadScreenOffTimer").c_str());
-  std::string labelTimer = (valTimer < 60 ? std::to_string(valTimer) + tr("s").toStdString() : std::to_string(valTimer / 60) + tr("m").toStdString());
-  onroadScreenOffTimer->setLabel(QString::fromStdString(labelTimer));
+  // Driving Screen Off Timer — label uses mapped seconds (match raylib)
+  const QString timer_key = QString::fromStdString(params.get("OnroadScreenOffTimer"));
+  const int valTimer = onroadScreenOffTimerOptions.value(timer_key, "0").toInt();
+  const QString labelTimer = (valTimer < 60) ? QString::number(valTimer) + "s"
+                                             : QString::number(valTimer / 60) + "m";
+  onroadScreenOffTimer->setLabel(labelTimer);
 
-  // Driving Screen Off Brightness
-  std::string valBrightness = params.get("OnroadScreenOffBrightness");
-  std::string labelBrightness = (valBrightness == "0" ? tr(" Screen Off").toStdString() : valBrightness + "%");
-  onroadScreenBrightness->setLabel(QString::fromStdString(labelBrightness));
+  // Driving Screen Off Brightness — match raylib OnroadBrightness enum (0=Auto,1=AutoDark,2=Off,3..22=(val-2)*5%)
+  const int valBrightness = std::atoi(params.get("OnroadScreenOffBrightness").c_str());
+  QString labelBrightness;
+  if (valBrightness == 0) labelBrightness = tr("Auto (Default)");
+  else if (valBrightness == 1) labelBrightness = tr("Auto (Dark)");
+  else if (valBrightness == 2) labelBrightness = tr("Screen Off");
+  else labelBrightness = QString::number((valBrightness - 2) * 5) + "%";
+  onroadScreenBrightness->setLabel(labelBrightness);
 }
