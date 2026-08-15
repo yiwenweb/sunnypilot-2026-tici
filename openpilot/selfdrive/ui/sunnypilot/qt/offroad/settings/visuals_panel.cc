@@ -147,7 +147,7 @@ VisualsPanel::VisualsPanel(QWidget *parent) : QWidget(parent) {
     "DevUIInfo", tr("Developer UI"), tr("Display real-time parameters and metrics from various sources."),
     "",
     dev_ui_settings_texts,
-    380);
+    250);
   list->addItem(dev_ui_settings);
 
   sunnypilotScroller = new ScrollViewSP(list, this);
