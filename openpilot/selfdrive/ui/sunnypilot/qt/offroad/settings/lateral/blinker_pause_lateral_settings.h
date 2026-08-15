@@ -22,4 +22,5 @@ public:
 private:
   Params params;
   OptionControlSP *pauseLateralSpeed;
+  OptionControlSP *blinkerReengageDelay;
 };

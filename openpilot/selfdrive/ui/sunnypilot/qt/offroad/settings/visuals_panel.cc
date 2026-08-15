@@ -141,8 +141,8 @@ VisualsPanel::VisualsPanel(QWidget *parent) : QWidget(parent) {
   list->addItem(chevron_info_settings);
   param_watcher->addParam("ChevronInfo");
 
-  // Visuals: Developer UI Info (Dev UI)
-  std::vector<QString> dev_ui_settings_texts{tr("Off"), tr("Right"), tr("Right &&\nBottom")};
+  // Visuals: Developer UI Info (Dev UI) — order matches raylib DeveloperUiState: OFF=0, BOTTOM=1, RIGHT=2, BOTH=3
+  std::vector<QString> dev_ui_settings_texts{tr("Off"), tr("Bottom"), tr("Right"), tr("Right &&\nBottom")};
   dev_ui_settings = new ButtonParamControlSP(
     "DevUIInfo", tr("Developer UI"), tr("Display real-time parameters and metrics from various sources."),
     "",

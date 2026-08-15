@@ -15,6 +15,12 @@ BlinkerPauseLateralSettings::BlinkerPauseLateralSettings(const QString &param, c
   connect(pauseLateralSpeed, &OptionControlSP::updateLabels, this, &BlinkerPauseLateralSettings::refresh);
   addItem(pauseLateralSpeed);
 
+  blinkerReengageDelay = new OptionControlSP(
+    "BlinkerLateralReengageDelay", tr("Post-Blinker Delay"),
+    tr("Delay before lateral control resumes after the turn signal ends."), "", {0, 10}, 1);
+  connect(blinkerReengageDelay, &OptionControlSP::updateLabels, this, &BlinkerPauseLateralSettings::refresh);
+  addItem(blinkerReengageDelay);
+
   refresh();
 }
 
@@ -24,4 +30,7 @@ void BlinkerPauseLateralSettings::refresh() {
   const QString unit = is_metric ? "km/h" : "mph";
 
   pauseLateralSpeed->setLabel(option + " " + unit);
+
+  const QString delay = QString::fromStdString(params.get("BlinkerLateralReengageDelay"));
+  blinkerReengageDelay->setLabel(delay + " s");
 }

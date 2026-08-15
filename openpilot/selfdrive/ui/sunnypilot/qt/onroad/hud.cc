@@ -293,8 +293,12 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     }
     smartCruiseControlMapFrame = smartCruiseControlMapActive ? (smartCruiseControlMapFrame + 1) : 0;
 
+    // Dev UI — matches raylib DeveloperUiState: OFF=0, BOTTOM=1, RIGHT=2, BOTH=3
+    const bool dev_ui_bottom = (devUiInfo == 1 || devUiInfo == 3);
+    const bool dev_ui_right = (devUiInfo == 2 || devUiInfo == 3);
+
     // Bottom Dev UI
-    if (devUiInfo == 2) {
+    if (dev_ui_bottom) {
       QRect rect_bottom(surface_rect.left(), surface_rect.bottom() - 60, surface_rect.width(), 61);
       p.setPen(Qt::NoPen);
       p.setBrush(QColor(0, 0, 0, 100));
@@ -303,7 +307,7 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     }
 
     // Right Dev UI
-    if (devUiInfo != 0) {
+    if (dev_ui_right) {
       QRect rect_right(surface_rect.right() - (UI_BORDER_SIZE * 2), UI_BORDER_SIZE * 1.5, 184, 170);
       drawRightDevUI(p, surface_rect.right() - 184 - UI_BORDER_SIZE * 2, UI_BORDER_SIZE * 2 + rect_right.height());
     }
@@ -850,7 +854,8 @@ void HudRendererSP::drawSetSpeedSP(QPainter &p, const QRect &surface_rect) {
 void HudRendererSP::drawE2eAlert(QPainter &p, const QRect &surface_rect, const QString &alert_alt_text) {
   if (!allow_e2e_alerts) return;
 
-  int x = surface_rect.right() - e2e_alert_size - (devUiInfo > 0 ? 180 : 100) - (UI_BORDER_SIZE * 3);
+  // Matches raylib: width adjustment 180 when RIGHT(2)/BOTH(3), else 100
+  int x = surface_rect.right() - e2e_alert_size - ((devUiInfo == 2 || devUiInfo == 3) ? 180 : 100) - (UI_BORDER_SIZE * 3);
   int y = surface_rect.center().y() + 20;
   QRect alertRect(x - e2e_alert_size, y - e2e_alert_size, e2e_alert_size * 2, e2e_alert_size * 2);
 
