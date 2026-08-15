@@ -369,7 +369,7 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     }
 
     // TorqueBar
-    if (torqueBar) {
+    if (torqueBar || qEnvironmentVariableIntValue("TORQUE_BAR_TEST") == 1) {
       drawTorqueBar(p, surface_rect);
     }
 
@@ -984,10 +984,17 @@ void HudRendererSP::drawBlinker(QPainter &p, const QRect &surface_rect) {
 
 void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
   static int dbg = 0;
+  // TEMP TEST: force a visible torque bar for off-car verification.
+  static bool test_mode = qEnvironmentVariableIntValue("TORQUE_BAR_TEST") == 1;
+  if (test_mode) {
+    torqueFilterX = 0.6f;
+    torqueLineAlphaFilter = 1.0f;
+  }
   if (dbg++ % 30 == 0) {
     qWarning() << "[TorqueBar] filterX=" << torqueFilterX
                << " alpha=" << torqueLineAlphaFilter
                << " status=" << (int)status
+               << " test_mode=" << test_mode
                << " rect=" << surface_rect;
   }
   // Qt UI uses the same 2160x1080 logical coordinate space as the raylib big-screen
