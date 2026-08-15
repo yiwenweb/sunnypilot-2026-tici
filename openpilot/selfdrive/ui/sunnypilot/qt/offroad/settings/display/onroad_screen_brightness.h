@@ -10,7 +10,6 @@
 #include "openpilot/selfdrive/ui/sunnypilot/ui.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/settings.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/controls.h"
-#include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/expandable_row.h"
 
 // Matches raylib ONROAD_BRIGHTNESS_TIMER_VALUES (seconds): {0:3,1:5,2:7,3:10,4:15,5:30,6:60...15:600}
 static const QMap<QString, QString> onroadScreenOffTimerOptions = {
@@ -32,16 +31,17 @@ static const QMap<QString, QString> onroadScreenOffTimerOptions = {
   {"15", "600"}
 };
 
-class OnroadScreenBrightnessControl : public ExpandableToggleRow {
+// Two independent option items (no toggle), matching raylib display.py:
+// OnroadScreenOffBrightness (0-22 enum) + OnroadScreenOffTimer (0-15 seconds).
+class OnroadScreenBrightnessControl : public QWidget {
   Q_OBJECT
 
 public:
-  OnroadScreenBrightnessControl(const QString &param, const QString &title, const QString &desc, const QString &icon,
-                                QWidget *parent = nullptr);
+  OnroadScreenBrightnessControl(QWidget *parent = nullptr);
   void refresh();
 
 private:
   Params params;
+  OptionControlSP *onroadScreenOffBrightness;
   OptionControlSP *onroadScreenOffTimer;
-  OptionControlSP *onroadScreenBrightness;
 };

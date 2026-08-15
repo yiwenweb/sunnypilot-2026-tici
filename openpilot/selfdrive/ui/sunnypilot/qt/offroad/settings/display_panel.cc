@@ -15,14 +15,8 @@ DisplayPanel::DisplayPanel(QWidget *parent) : QWidget(parent) {
   QVBoxLayout* vlayout = new QVBoxLayout(sunnypilotScreen);
   vlayout->setContentsMargins(50, 20, 50, 20);
 
-  // Onroad Screen Off/Brightness
-  onroadScreenBrightnessControl = new OnroadScreenBrightnessControl(
-    "OnroadScreenOffControl",
-    tr("Onroad Screen: Reduced Brightness"),
-    tr("Turn off device screen or reduce brightness after driving starts. "
-       "It automatically brightens again when screen is touched or a visible alert is displayed."),
-    "",
-    this);
+  // Onroad Screen Off/Brightness (two independent options, matching raylib display.py)
+  onroadScreenBrightnessControl = new OnroadScreenBrightnessControl(this);
   list->addItem(onroadScreenBrightnessControl);
   list->addItem(horizontal_line());
 

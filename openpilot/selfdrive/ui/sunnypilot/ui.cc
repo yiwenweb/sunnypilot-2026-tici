@@ -12,7 +12,7 @@
 void UIStateSP::updateStatus() {
   UIState::updateStatus();
 
-  if (scene.started && scene.onroadScreenOffControl) {
+  if (scene.started && scene.onroadScreenOffBrightness != 0) {
     auto selfdriveState = (*sm)["selfdriveState"].getSelfdriveState();
     if (selfdriveState.getAlertSize() != cereal::SelfdriveState::AlertSize::NONE) {
       reset_onroad_sleep_timer();
@@ -71,7 +71,6 @@ void ui_update_params_sp(UIStateSP *s) {
 
   // Onroad Screen Brightness
   s->scene.onroadScreenOffBrightness = std::atoi(params.get("OnroadScreenOffBrightness").c_str());
-  s->scene.onroadScreenOffControl = params.getBool("OnroadScreenOffControl");
   s->scene.onroadScreenOffTimerParam = std::atoi(params.get("OnroadScreenOffTimer").c_str());
 
   s->scene.turn_signals = params.getBool("ShowTurnSignals");
@@ -88,8 +87,13 @@ void UIStateSP::reset_onroad_sleep_timer(OnroadTimerStatusToggle toggleTimerStat
     scene.onroadScreenOffTimer = -1;
   }
   // Toggling from a previously inactive state or resetting an active timer
-  else if ((scene.onroadScreenOffTimerParam >= 0 and scene.onroadScreenOffControl and scene.onroadScreenOffTimer != -1) or toggleTimerStatus == OnroadTimerStatusToggle::RESUME) {
-    scene.onroadScreenOffTimer = scene.onroadScreenOffTimerParam * UI_FREQ;
+  else if ((scene.onroadScreenOffTimerParam >= 0 and scene.onroadScreenOffBrightness != 0 and scene.onroadScreenOffTimer != -1) or toggleTimerStatus == OnroadTimerStatusToggle::RESUME) {
+    // raylib: AUTO_DARK (1) uses a fixed 15s, otherwise use the mapped seconds
+    if (scene.onroadScreenOffBrightness == 1) {
+      scene.onroadScreenOffTimer = 15 * UI_FREQ;
+    } else {
+      scene.onroadScreenOffTimer = scene.onroadScreenOffTimerParam * UI_FREQ;
+    }
   }
 }
 

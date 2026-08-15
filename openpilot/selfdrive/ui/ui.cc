@@ -204,10 +204,21 @@ void Device::updateBrightness(const UIState &s) {
     brightness = 0;
   }
 
-  // Onroad Brightness Control
+  // Onroad Brightness Control (matches raylib DeviceSP.set_onroad_brightness)
 #ifdef SUNNYPILOT
-  if (awake && s.scene.started && s.scene.onroadScreenOffControl && s.scene.onroadScreenOffTimer == 0) {
-    brightness = s.scene.onroadScreenOffBrightness * 0.01 * brightness;
+  if (awake && s.scene.started) {
+    const int ob = s.scene.onroadScreenOffBrightness;
+    if (ob != 0) {  // 0 = Auto (Default): keep automatic brightness
+      if (s.scene.onroadScreenOffTimer != 0) {
+        // timer still counting: AUTO_DARK keeps min 30, others keep current
+        if (ob == 1) brightness = std::max(30, brightness);  // AUTO_DARK
+      } else {
+        // timer expired: apply the selected brightness
+        if (ob == 2) brightness = 0;                    // SCREEN_OFF
+        else if (ob == 1) brightness = std::max(30, brightness);  // AUTO_DARK
+        else brightness = (ob - 2) * 5;                 // 3-22: 5% - 100%
+      }
+    }
   }
 #endif
 

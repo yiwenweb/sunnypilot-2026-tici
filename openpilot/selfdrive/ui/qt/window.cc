@@ -95,10 +95,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 
 #ifdef SUNNYPILOT
       auto *s_sp = uiStateSP();
-      bool onroadScreenControl = s_sp->scene.onroadScreenOffControl;
+      bool onroadEnabled = (s_sp->scene.onroadScreenOffBrightness != 0);
       bool started = s_sp->scene.started;
       bool timerExpired = (s_sp->scene.onroadScreenOffTimer == 0);
-      ignore |= (onroadScreenControl and started and timerExpired);
+      // matches raylib wake_from_dimmed_onroad_brightness (timer expired or AUTO_DARK)
+      ignore |= (onroadEnabled and started and (timerExpired or s_sp->scene.onroadScreenOffBrightness == 1));
       s_sp->reset_onroad_sleep_timer();
 #endif
 
