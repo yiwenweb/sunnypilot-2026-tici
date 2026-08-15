@@ -13,6 +13,19 @@
 #include "openpilot/selfdrive/ui/qt/util.h"
 
 
+// HSV-space color blend, mirroring raylib's blend_colors (shortest hue delta).
+static QColor hsvBlend(const QColor &a, const QColor &b, float f) {
+  QColor ha = a.toHsv();
+  QColor hb = b.toHsv();
+  float dh = std::fmod(hb.hueF() - ha.hueF() + 0.5f, 1.0f) - 0.5f;  // shortest hue delta in [0,1)
+  float h = std::fmod(ha.hueF() + f * dh + 1.0f, 1.0f);
+  float s = ha.saturationF() + f * (hb.saturationF() - ha.saturationF());
+  float v = ha.valueF() + f * (hb.valueF() - ha.valueF());
+  float alphaF = a.alphaF() + f * (b.alphaF() - a.alphaF());
+  return QColor::fromHsvF(h, std::clamp(s, 0.0f, 1.0f), std::clamp(v, 0.0f, 1.0f), std::clamp(alphaF, 0.0f, 1.0f));
+}
+
+
 HudRendererSP::HudRendererSP() {
   plus_arrow_up_img = loadPixmap("../../sunnypilot/selfdrive/assets/img_plus_arrow_up", {90, 90});
   minus_arrow_down_img = loadPixmap("../../sunnypilot/selfdrive/assets/img_minus_arrow_down", {90, 90});
@@ -1012,11 +1025,8 @@ void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
   float torque_line_offset = (abs_torque < 0.5f) ? 30.0f * scale : (30.0f * scale + (abs_torque - 0.5f) / 0.5f * 4.0f * scale);
   float torque_line_height = 14.0f * scale + (abs_torque < 0.5f ? 0.0f : (abs_torque - 0.5f) / 0.5f * 42.0f * scale);
 
-  // Background arc alpha
-  float bg_alpha = 0.15f;
-  if (abs_torque > 0.5f) {
-    bg_alpha = 0.25f + (abs_torque - 0.5f) / 0.5f * 0.25f;
-  }
+  // Background arc alpha: raylib np.interp(x, [0.5, 1], [0.25, 0.5]) clamps to 0.25 below 0.5
+  float bg_alpha = (abs_torque < 0.5f) ? 0.25f : (0.25f + (abs_torque - 0.5f) / 0.5f * 0.25f);
   if (status != STATUS_ENGAGED && status != STATUS_LAT_ONLY) {
     bg_alpha = 0.15f * torqueLineAlphaFilter;
   }
@@ -1055,21 +1065,33 @@ void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
   float fg_span = -torque_bg_angle_span / 2.0f * torqueFilterX;
 
   if (std::abs(fg_span) > 0.01f && torqueLineAlphaFilter > 0.0f) {
-    // Color: blend from white to yellow/orange as torque approaches max
-    int r, g, b, a;
-    float t = std::max(0.0f, abs_torque - 0.75f) * 4.0f;
-    t = std::min(1.0f, t);
-    r = 255;
-    g = 255 - (int)(55 * t);
-    b = 255 - (int)(255 * t);
-    a = (int)(255 * 0.9f * torqueLineAlphaFilter);
+    // Color: raylib blends white -> yellow(start)/orange(end) in HSV space as
+    // torque approaches max (factor f = clamp(abs(torque)-0.75, 0, 0.25)*4).
+    float f = std::min(1.0f, std::max(0.0f, abs_torque - 0.75f) * 4.0f);
 
+    int a;
+    QColor start_color, end_color;
     if (status != STATUS_ENGAGED && status != STATUS_LAT_ONLY) {
-      r = g = b = 255;
-      a = (int)(255 * 0.35f * torqueLineAlphaFilter);
+      start_color = end_color = QColor(255, 255, 255, (int)(255 * 0.35f * torqueLineAlphaFilter));
+    } else {
+      a = (int)(255 * 0.9f * torqueLineAlphaFilter);
+      // white -> yellow (255,200,0) via HSV blend
+      QColor white(255, 255, 255, a);
+      QColor yellow(255, 200, 0, (int)(255 * torqueLineAlphaFilter));
+      QColor orange(255, 115, 0, (int)(255 * torqueLineAlphaFilter));
+      start_color = hsvBlend(white, yellow, f);
+      end_color = hsvBlend(white, orange, f);
     }
 
-    QPen fg_pen(QColor(r, g, b, a), torque_line_height);
+    // Horizontal gradient from center to 65% of the arc endpoint (mirror raylib)
+    float end_x = (torqueFilterX < 0.0f)
+      ? (cx * (1.0f - 0.65f) + (cx - mid_r) * 0.65f)
+      : (cx * (1.0f - 0.65f) + (cx + mid_r) * 0.65f);
+    QLinearGradient gradient(QPointF(cx, cy), QPointF(end_x, cy));
+    gradient.setColorAt(0.0f, start_color);
+    gradient.setColorAt(1.0f, end_color);
+
+    QPen fg_pen(QBrush(gradient), torque_line_height);
     fg_pen.setCapStyle(Qt::RoundCap);
     p.setPen(fg_pen);
 
