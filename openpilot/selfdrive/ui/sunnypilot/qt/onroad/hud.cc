@@ -1006,8 +1006,10 @@ void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
 
   // Adjust Y position and height based on torque magnitude.
   // Mirror raylib's np.interp(x, [0.5, 1], [22, 26]): clamp to 22 for x < 0.5.
+  // Raised base offset from 22 to 30 so the arc sits a bit higher (avoids
+  // overlapping the very bottom edge / bottom HUD).
   float abs_torque = std::abs(torqueFilterX);
-  float torque_line_offset = (abs_torque < 0.5f) ? 22.0f * scale : (22.0f * scale + (abs_torque - 0.5f) / 0.5f * 4.0f * scale);
+  float torque_line_offset = (abs_torque < 0.5f) ? 30.0f * scale : (30.0f * scale + (abs_torque - 0.5f) / 0.5f * 4.0f * scale);
   float torque_line_height = 14.0f * scale + (abs_torque < 0.5f ? 0.0f : (abs_torque - 0.5f) / 0.5f * 42.0f * scale);
 
   // Background arc alpha
