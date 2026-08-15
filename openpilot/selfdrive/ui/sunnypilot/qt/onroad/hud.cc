@@ -997,10 +997,11 @@ void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
                << " test_mode=" << test_mode
                << " rect=" << surface_rect;
   }
-  // Qt UI uses the same 2160x1080 logical coordinate space as the raylib big-screen
-  // UI (DEVICE_SCREEN_SIZE = {2160, 1080}), so scale must be 1.0 (not 3.0) to match
-  // the reference torque_bar.py rendering exactly.
-  const float scale = 1.0f;
+  // The raylib reference (torque_bar.py) uses scale=3.0 on tici/mici big_ui
+  // (2160x1080 logical space), giving radius = 1200*3 = 3600. The Qt surface_rect
+  // (1800x1020, sidebar excluded) shares the same 1080-height logical space, so
+  // scale must also be 3.0 to match the reference arc size and curvature.
+  const float scale = 3.0f;
   const float TORQUE_ANGLE_SPAN = 12.7f;
 
   // Adjust Y position and height based on torque magnitude.
