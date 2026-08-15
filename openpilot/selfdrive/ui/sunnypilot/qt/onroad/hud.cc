@@ -982,12 +982,16 @@ void HudRendererSP::drawBlinker(QPainter &p, const QRect &surface_rect) {
 }
 
 void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
-  const float scale = 3.0f;
+  // Qt UI uses the same 2160x1080 logical coordinate space as the raylib big-screen
+  // UI (DEVICE_SCREEN_SIZE = {2160, 1080}), so scale must be 1.0 (not 3.0) to match
+  // the reference torque_bar.py rendering exactly.
+  const float scale = 1.0f;
   const float TORQUE_ANGLE_SPAN = 12.7f;
 
-  // Adjust Y position and height based on torque magnitude
+  // Adjust Y position and height based on torque magnitude.
+  // Mirror raylib's np.interp(x, [0.5, 1], [22, 26]): clamp to 22 for x < 0.5.
   float abs_torque = std::abs(torqueFilterX);
-  float torque_line_offset = (abs_torque < 0.5f) ? 0.0f : (22.0f * scale + (abs_torque - 0.5f) / 0.5f * 4.0f * scale);
+  float torque_line_offset = (abs_torque < 0.5f) ? 22.0f * scale : (22.0f * scale + (abs_torque - 0.5f) / 0.5f * 4.0f * scale);
   float torque_line_height = 14.0f * scale + (abs_torque < 0.5f ? 0.0f : (abs_torque - 0.5f) / 0.5f * 42.0f * scale);
 
   // Background arc alpha
@@ -1025,9 +1029,12 @@ void HudRendererSP::drawTorqueBar(QPainter &p, const QRect &surface_rect) {
   }
 
   // Draw torque indicator line (foreground arc)
+  // raylib's arc_bar_pts uses math coords (x=cos, y=sin, CCW positive), where
+  // torque.x > 0 sweeps from top toward +X (right). Qt's drawArc is CCW-positive
+  // from 3 o'clock, so positive torque must map to a negative span (clockwise,
+  // from 12 o'clock toward 3 o'clock) to sweep the same direction.
   float a0s = top_angle;
-  float a1s = a0s + torque_bg_angle_span / 2.0f * torqueFilterX;
-  float fg_span = a1s - a0s;
+  float fg_span = -torque_bg_angle_span / 2.0f * torqueFilterX;
 
   if (std::abs(fg_span) > 0.01f && torqueLineAlphaFilter > 0.0f) {
     // Color: blend from white to yellow/orange as torque approaches max
