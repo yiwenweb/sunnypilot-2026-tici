@@ -690,7 +690,8 @@ This is the time after which settings UI closes automatically if user is not int
     </message>
     <message numerus="yes">
         <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.</source>
-        <translation>目前已有 &lt;b&gt;%n段&lt;/b&gt; 驾驶数据在训练数据集中。<numerusform>&lt;b&gt;目前已有 %n 段&lt;/b&gt; 您的驾驶数据被纳入训练数据集。</numerusform>
+        <translation>
+            <numerusform>&lt;b&gt;目前已有 %n 段&lt;/b&gt; 您的驾驶数据被纳入训练数据集。</numerusform>
         </translation>
     </message>
     <message>
@@ -839,7 +840,8 @@ DEPARTING</source>
     </message>
     <message numerus="yes">
         <source>Need at least %n character(s)!</source>
-        <translation>至少需要 %n 个字符！<numerusform>至少需要 %n 个字符！</numerusform>
+        <translation>
+            <numerusform>至少需要 %n 个字符！</numerusform>
         </translation>
     </message>
 </context>
@@ -1748,17 +1750,20 @@ Warning: You are on a metered connection!</source>
     <name>QObject</name>
     <message numerus="yes">
         <source>%n minute(s) ago</source>
-        <translation>%n 分钟前<numerusform>%n 分钟前</numerusform>
+        <translation>
+            <numerusform>%n 分钟前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>%n hour(s) ago</source>
-        <translation>%n 小时前<numerusform>%n 小时前</numerusform>
+        <translation>
+            <numerusform>%n 小时前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>%n day(s) ago</source>
-        <translation>%n 天前<numerusform>%n 天前</numerusform>
+        <translation>
+            <numerusform>%n 天前</numerusform>
         </translation>
     </message>
     <message>
