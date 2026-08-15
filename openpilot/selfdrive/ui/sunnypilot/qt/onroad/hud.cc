@@ -1111,14 +1111,16 @@ void HudRendererSP::drawConfidenceBall(QPainter &p, const QRect &surface_rect) {
   //   - Color: green(cyan) = high, yellow/orange = medium, red = low
   //   - MADS states use fixed colors (cyan=purple)
   // Position: right side of the screen, matching the side panel area.
-  const int dot_radius = 32; // Scaled up from 24 (raylib) for Qt DPI
-  const int panel_width = 80; // Right-side panel reserved width
-  const int dot_x = surface_rect.right() - panel_width / 2;
+  // raylib uses status_dot_radius=24 and dot center 24px from the right edge
+  // (content_rect.width - radius = SIDE_PANEL_WIDTH(60) - 24 = 36). Both Qt and
+  // raylib big-screen UI share the 2160x1080 logical space, so no DPI scaling.
+  const int dot_radius = 24;
+  const int dot_x = surface_rect.right() - dot_radius;
   const int content_h = surface_rect.height();
 
-  // Vertical position: maps confidence filter to a height on screen
-  // High confidence (filter=1.0) → dot near top; Low confidence (filter=-0.5) → dot near bottom
-  float dot_y = content_h - ((confidenceFilterX + 0.5f) / 1.0f) * (content_h - 2 * dot_radius) - dot_radius;
+  // Vertical position: mirror raylib's dot_height = (1 - confidence) * (h - 2r) + r.
+  // confidence=1.0 → r (top); confidence=0.0 → h-r (bottom); confidence=-0.5 → off-screen.
+  float dot_y = (1.0f - confidenceFilterX) * (content_h - 2 * dot_radius) + dot_radius;
 
   // Determine colors based on status and confidence level
   QColor top_color(50, 50, 50, 255);   // default: grey (disengaged)
@@ -1146,10 +1148,12 @@ void HudRendererSP::drawConfidenceBall(QPainter &p, const QRect &surface_rect) {
     bottom_color = QColor(82, 82, 82, 255);   // grey
   }
 
-  // Draw gradient circle using QRadialGradient
+  // Draw gradient circle. raylib uses draw_rectangle_gradient_v (vertical top→bottom
+  // gradient) masked by a ring, so use a vertical QLinearGradient here, not radial.
   p.save();
   p.setPen(Qt::NoPen);
-  QRadialGradient gradient(QPointF(dot_x, dot_y), dot_radius);
+  QLinearGradient gradient(QPointF(dot_x, dot_y - dot_radius),
+                           QPointF(dot_x, dot_y + dot_radius));
   gradient.setColorAt(0.0, top_color);
   gradient.setColorAt(1.0, bottom_color);
   p.setBrush(gradient);

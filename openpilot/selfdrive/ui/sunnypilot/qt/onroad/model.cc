@@ -290,18 +290,28 @@ void ModelRendererSP::drawLaneLinesSP(QPainter &painter, float torque) {
     if (highlighted) {
       color = blendColors(color, QColor(255, 115, 0), blend);
     }
+    // raylib's _get_ll_color forces every lane line/road edge to black when
+    // DISENGAGED, overriding both the adjacent/outer color and the torque highlight.
+    if (uiState()->status == STATUS_DISENGAGED) {
+      color = QColor(0, 0, 0);
+    }
     color.setAlphaF(alpha);
     painter.setBrush(color);
     painter.drawPolygon(lane_line_vertices[i]);
   }
 
   for (int i = 0; i < std::size(road_edge_vertices); ++i) {
-    const float alpha = std::clamp<float>(1.0f - road_edge_stds[i], 0.0f, 1.0f);
+    // raylib's _get_ll_color clips the road-edge prob to [0, 0.7] too (same 0.7 cap
+    // as lane lines), because it's passed through the shared np.clip(prob, 0, 0.7).
+    const float alpha = std::clamp<float>(1.0f - road_edge_stds[i], 0.0f, 0.7f);
     const bool adjacent = lane_line_probs[i + 1] < 0.25f;
     QColor color = adjacent ? adjacent_base : QColor(Qt::white);
     const bool highlighted = adjacent && abs_torque > kThreshold && ((i == 0) == (torque > 0.0f));
     if (highlighted) {
       color = blendColors(color, QColor(255, 115, 0), blend);
+    }
+    if (uiState()->status == STATUS_DISENGAGED) {
+      color = QColor(0, 0, 0);
     }
     color.setAlphaF(alpha);
     painter.setBrush(color);
