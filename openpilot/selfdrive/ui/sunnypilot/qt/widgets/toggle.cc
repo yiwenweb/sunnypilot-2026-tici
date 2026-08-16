@@ -21,8 +21,9 @@ void ToggleSP::paintEvent(QPaintEvent *e) {
 
   // Draw toggle background
   // Toggle ON: #1C65BA, OFF enabled: #393939, OFF disabled: #272727, disabled ON: #25466B
+  // Knob matches raylib TOGGLE_KNOB_COLOR (white) / TOGGLE_DISABLED_KNOB_COLOR (88,88,88)
   enabled ? green.setRgb(0x1C65BA) : green.setRgb(0x25466B);
-  enabled ? circleColor.setRgb(0xFAFAFA) : circleColor.setRgb(0x888888);
+  enabled ? circleColor.setRgb(0xFFFFFF) : circleColor.setRgb(0x585858);
   p.setBrush(on ? green : (enabled ? QColor(0x393939) : QColor(0x272727)));
   p.drawRoundedRect(QRect(0, 10, width(), _height_rect), _height_rect / 2, _height_rect / 2);
 

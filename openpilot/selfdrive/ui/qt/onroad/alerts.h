@@ -25,10 +25,11 @@ protected:
     }
   };
 
+  // Matches raylib ALERT_COLORS (alert_renderer.py): normal=(0,0,0), userPrompt=(255,115,0), critical=(255,0,21)
   const QMap<cereal::SelfdriveState::AlertStatus, QColor> alert_colors = {
-    {cereal::SelfdriveState::AlertStatus::NORMAL, QColor(0x15, 0x15, 0x15, 0xf1)},
-    {cereal::SelfdriveState::AlertStatus::USER_PROMPT, QColor(0xDA, 0x6F, 0x25, 0xf1)},
-    {cereal::SelfdriveState::AlertStatus::CRITICAL, QColor(0xC9, 0x22, 0x31, 0xf1)},
+    {cereal::SelfdriveState::AlertStatus::NORMAL, QColor(0, 0, 0, 255)},
+    {cereal::SelfdriveState::AlertStatus::USER_PROMPT, QColor(255, 115, 0, 255)},
+    {cereal::SelfdriveState::AlertStatus::CRITICAL, QColor(255, 0, 21, 255)},
   };
 
   void paintEvent(QPaintEvent*) override;
