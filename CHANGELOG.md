@@ -1,3 +1,17 @@
+sunnypilot Version 2026.002.002 (f4-port, 2026-08-16)
+========================
+* Ported upstream changes from official sunnypilot v2026.002.001 / v2026.002.002
+* What's Changed (sunnypilot/sunnypilot)
+  * plannerd: ignore mapd in health check by @sunnyhaibin in https://github.com/sunnypilot/sunnypilot/pull/1880 (already synced)
+  * plannerd & selfdriveStateSP: poll modelV2, relay button state via bitmask by @sunnyhaibin in https://github.com/sunnypilot/sunnypilot/pull/1893
+    * SelfdriveStateSP: add buttonsPressed @2 / buttonsReleaseToggle @3 (UInt16)
+    * selfdrived: add ButtonStateTracker
+    * SpeedLimitAssist: update_car_state -> update_buttons
+* What's Changed (sunnypilot/opendbc)
+  * safety: ignore frequency check for Toyota UNSUPPORTED_DSU cars by @sunnyhaibin in https://github.com/sunnypilot/opendbc/pull/489 (already synced)
+* Full Changelog: https://github.com/sunnypilot/sunnypilot/compare/v2026.002.000...v2026.002.002
+************************
+
 sunnypilot Version 2026.002.000 (2026-06-28)
 ========================
 * What's Changed (sunnypilot/sunnypilot)
