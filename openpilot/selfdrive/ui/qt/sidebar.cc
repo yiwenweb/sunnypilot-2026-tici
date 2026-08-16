@@ -99,12 +99,16 @@ void Sidebar::updateState(const UIState &s) {
   }
   setProperty("connectStatus", QVariant::fromValue(connectStatus));
 
-  ItemStatus tempStatus = {{tr("TEMP"), tr("HIGH")}, danger_color};
+  // Show actual device temperature (maxTempC) with color by thermal status
+  const int max_temp = qRound(deviceState.getMaxTempC());
+  const QString temp_value = QString::number(max_temp) + "°C";
+
+  ItemStatus tempStatus = {{tr("TEMP"), temp_value}, danger_color};
   auto ts = deviceState.getThermalStatus();
   if (ts == cereal::DeviceState::ThermalStatus::OK) {
-    tempStatus = {{tr("TEMP"), tr("GOOD")}, good_color};
+    tempStatus = {{tr("TEMP"), temp_value}, good_color};
   } else if (ts == cereal::DeviceState::ThermalStatus::WARM_D_E_P_R_E_C_A_T_E_D) {
-    tempStatus = {{tr("TEMP"), tr("OK")}, warning_color};
+    tempStatus = {{tr("TEMP"), temp_value}, warning_color};
   }
   setProperty("tempStatus", QVariant::fromValue(tempStatus));
 
