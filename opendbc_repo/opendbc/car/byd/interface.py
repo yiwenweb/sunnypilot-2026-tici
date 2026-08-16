@@ -104,6 +104,23 @@ class CarInterface(CarInterfaceBase):
                 ret.longitudinalTuning.kpV = [1.5]
                 ret.longitudinalTuning.kiV = [0.3]
             
+            # 跟车距离档位（读取UI设置，影响stoppingDecelRate）
+            # 1=近档2.5s, 2=中档3.5s, 3=远档4.5s(默认), 4=超远档6.0s
+            # 通过调整stoppingDecelRate影响跟车距离（值越小距离越远）
+            try:
+                from opendbc.car.common.params import Params
+                follow_distance = Params().get_int("BydFollowDistance")
+                if follow_distance == 1:
+                    ret.stoppingDecelRate = 0.8  # 近档：更激进的减速
+                elif follow_distance == 2:
+                    ret.stoppingDecelRate = 0.6  # 中档
+                elif follow_distance == 4:
+                    ret.stoppingDecelRate = 0.3  # 超远档：更保守
+                else:  # 3=远档（默认）
+                    ret.stoppingDecelRate = 0.5
+            except:
+                ret.stoppingDecelRate = 0.5  # 默认值
+            
             ret.vEgoStarting = 0.2 * CV.KPH_TO_MS
             ret.vEgoStopping = 0.1 * CV.KPH_TO_MS
         else:

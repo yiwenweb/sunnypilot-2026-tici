@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle/byd_settings.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle/chrysler_settings.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle/ford_settings.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle/gm_settings.h"

@@ -217,6 +217,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"BackupManager_RestoreVersion", {PERSISTENT, STRING}},
 
     // sunnypilot car specific params
+    {"BydFollowDistance", {PERSISTENT | BACKUP, INT, "3"}},  // BYD跟车距离档位: 1=近(2.5s), 2=中(3.5s), 3=远(4.5s默认), 4=超远(6.0s)
     {"HyundaiLongitudinalTuning", {PERSISTENT | BACKUP, INT, "0"}},
     {"SubaruStopAndGo", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"SubaruStopAndGoManualParkingBrake", {PERSISTENT | BACKUP, BOOL, "0"}},

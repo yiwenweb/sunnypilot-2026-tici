@@ -9,6 +9,7 @@
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle/brands.h"
 
 static const QStringList supportedBrands = {
+  "byd",
   "chrysler",
   "ford",
   "gm",
@@ -24,6 +25,8 @@ static const QStringList supportedBrands = {
 };
 
 BrandSettingsInterface* BrandSettingsFactory::createBrandSettings(const QString& brand, QWidget* parent) {
+  if (brand == "byd")
+    return new BydSettings(parent);
   if (brand == "chrysler")
     return new ChryslerSettings(parent);
   if (brand == "ford")

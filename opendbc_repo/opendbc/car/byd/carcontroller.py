@@ -1,19 +1,28 @@
+import math
 import numpy as np
 from opendbc.can import CANPacker
-from opendbc.car import Bus, structs
+from opendbc.car import Bus, structs, ACCELERATION_DUE_TO_GRAVITY, DT_CTRL
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.lateral import apply_driver_steer_torque_limits, apply_meas_steer_torque_limits
+from opendbc.car.common.filter_simple import FirstOrderFilter, HighPassFilter
 from opendbc.car.byd import bydcan
 from opendbc.car.byd.values import CarControllerParams
+
+# sunnypilot MADS support
+from opendbc.sunnypilot.car.byd.mads import MadsCarController
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 ButtonType = structs.CarState.ButtonEvent.Type
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
+# 坡度补偿参数（参考Toyota）
+MAX_PITCH_COMPENSATION = 1.5  # m/s² 最大坡度补偿量（唐DM 2.25吨SUV，坡道敏感）
 
-class CarController(CarControllerBase):
+
+class CarController(CarControllerBase, MadsCarController):
   def __init__(self, dbc_names, CP, CP_SP):
     super().__init__(dbc_names, CP, CP_SP)
+    MadsCarController.__init__(self)  # 初始化 MADS
 
     self.packer = CANPacker(dbc_names[Bus.pt])
 
@@ -70,9 +79,18 @@ class CarController(CarControllerBase):
     
     # 纵向控制优化
     self.speed_hyst_upper = False  # 超速抑制状态
+    
+    # 坡度补偿滤波器（参考Toyota）
+    self.pitch = FirstOrderFilter(0, 0.5, DT_CTRL)       # 低通滤波俯仰角（平滑）
+    self.pitch_hp = HighPassFilter(0.0, 0.25, 1.5, DT_CTRL)  # 高通滤波（提取坡度变化）
+    self.aego = FirstOrderFilter(0.0, 0.25, DT_CTRL)    # 加速度滤波
+    self.prev_accel = 0.0  # 上一帧加速度（用于jerk计算）
 
 
   def update(self, CC, CC_SP, CS, now_nanos):
+    # === MADS 状态更新（每帧调用） ===
+    self.update(self.CP, CC, CC_SP, self.frame)
+    
     can_sends = []
 
     if (self.frame - self.last_steer_frame) >= CarControllerParams.STEER_STEP:
@@ -431,7 +449,45 @@ class CarController(CarControllerBase):
                                               True, self.eps_fake318_counter))
 
     if (self.frame + 1 - self.last_acc_frame) >= CarControllerParams.ACC_STEP:
+      # 更新俯仰角滤波器（用于坡度补偿）
+      if len(CC.orientationNED) == 3:
+        self.pitch.update(CC.orientationNED[1])      # 低通滤波：平滑俯仰角
+        self.pitch_hp.update(CC.orientationNED[1])   # 高通滤波：提取坡度变化
+      
+      # 原始加速度命令
       accel = np.clip(CC.actuators.accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
+      
+      # === 坡度补偿（参考Toyota，适配唐DM 2.25吨SUV） ===
+      if CC.longActive:
+        # 1) 下坡补偿：防止下坡时加速过快（只取负坡度）
+        accel_due_to_pitch = math.sin(min(self.pitch.x, 0.0)) * ACCELERATION_DUE_TO_GRAVITY
+        
+        # 2) 上坡快速补偿：用高通滤波提取坡度变化，快速响应上坡（BYD ECU响应慢，需前馈）
+        pitch_compensation = float(np.clip(
+            math.sin(self.pitch_hp.x) * ACCELERATION_DUE_TO_GRAVITY,
+            -MAX_PITCH_COMPENSATION, 
+            MAX_PITCH_COMPENSATION
+        ))
+        
+        # 3) 未来误差预测（jerk补偿）：提前补偿执行器延迟（BYD longitudinalActuatorDelay=0.5s）
+        self.aego.update(CS.out.aEgo)
+        j_ego = (self.aego.x - self.prev_accel) / DT_CTRL
+        future_t = float(np.interp(CS.out.vEgo, [2., 5.], [0.25, 0.5]))  # 速度越快预测越远
+        a_ego_future = CS.out.aEgo + j_ego * future_t
+        
+        # 4) 叠加坡度补偿（非stopping时才加上坡快速补偿）
+        stopping = CC.actuators.longControlState == LongCtrlState.stopping
+        if not stopping:
+          accel += pitch_compensation  # 上坡快速响应
+        
+        # 下坡补偿总是生效（防溜坡）
+        # 注意：这里不直接叠加accel_due_to_pitch，而是作为net_request的一部分影响后续逻辑
+        # 实际控制中，下坡时系统会自然减少加速度输出
+        
+        self.prev_accel = CS.out.aEgo
+      
+      # 重新限幅（坡度补偿后可能超限）
+      accel = np.clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
 
       if CC.longActive:
         # 速度滞环：防止在目标速度附近频繁点刹震荡

@@ -10,14 +10,18 @@ from opendbc.car import Bus, create_button_events, structs
 from opendbc.car.interfaces import CarStateBase
 from opendbc.car.byd.values import DBC, CanBus, LKASConfig, CarControllerParams
 
+# sunnypilot MADS support
+from opendbc.sunnypilot.car.byd.mads import MadsCarState
+
 BYD_RADAR = os.getenv("BYD_RADAR") is not None
 
 ButtonType = structs.CarState.ButtonEvent.Type
 
 
-class CarState(CarStateBase):
+class CarState(CarStateBase, MadsCarState):
     def __init__(self, CP, CP_SP):
         super().__init__(CP, CP_SP)
+        MadsCarState.__init__(self, CP, CP_SP)  # 初始化 MADS
 
         can_define = CANDefine(DBC[CP.carFingerprint][Bus.pt])
         self.shifter_values = can_define.dv["DRIVE_STATE"]["Gear"]
@@ -271,6 +275,11 @@ class CarState(CarStateBase):
             *create_button_events(self.btn_acc_dist_inc, prev_btn_acc_dist_inc, {1: ButtonType.gapAdjustCruise}),
             *create_button_events(self.btn_acc_dist_dec, prev_btn_acc_dist_dec, {1: ButtonType.gapAdjustCruise}),
         ]
+        
+        # === MADS 状态更新 ===
+        # panda 层（safety/modes/byd.h）已经监听 acc_main_on 按钮并更新 mads_button_press
+        # Python 层只需调用 update_mads 消费状态即可
+        self.update_mads(ret, can_parsers)
 
         return ret, ret_sp
 
