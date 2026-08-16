@@ -27,8 +27,9 @@ DriverMonitorRenderer::DriverMonitorRenderer() : face_kpts_draw(std::size(DEFAUL
 
 void DriverMonitorRenderer::updateState(const UIState &s) {
   auto &sm = *(s.sm);
-  prepared_active = false;  // TODO: port LKAS Prepared from sp2025-gf CarState
-  prepared_frames = 0;      // TODO: port LKAS Prepared from sp2025-gf CarState
+  const auto car_state = sm["carState"].getCarState();
+  prepared_active = car_state.getLkasPrepared();
+  prepared_frames = car_state.getLkasPreparedFrames();
 
   is_visible = sm["selfdriveState"].getSelfdriveState().getAlertSize() == cereal::SelfdriveState::AlertSize::NONE &&
                sm.rcv_frame("driverStateV2") > s.scene.started_frame;

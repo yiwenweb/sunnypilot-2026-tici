@@ -203,6 +203,8 @@ struct CarState {
   vehicleSensorsInvalid @52 :Bool;  # invalid steering angle readings, etc.
   lowSpeedAlert @56 :Bool;  # lost steering control due to a dynamic min steering speed
   blockPcmEnable @60 :Bool;  # whether to allow PCM to enable this frame
+  lkasPrepared @61 :Bool;          # EPS reports LKAS prepared (handshake bit), ported from sp2025-gf
+  lkasPreparedFrames @62 :UInt16;  # consecutive 50 Hz frames with LKAS_Prepared=1, capped at 65535
 
   # cruise state
   cruiseState @10 :CruiseState;
