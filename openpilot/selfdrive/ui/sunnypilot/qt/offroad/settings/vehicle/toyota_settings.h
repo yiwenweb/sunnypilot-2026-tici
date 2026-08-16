@@ -22,5 +22,6 @@ public:
   void updateSettings() override;
 
 private:
-  bool offroad = false;
+  ParamControlSP *enforceStockLongitudinalToggle = nullptr;
+  ParamControlSP *stopAndGoHackToggle = nullptr;
 };
