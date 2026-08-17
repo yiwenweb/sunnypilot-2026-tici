@@ -17,6 +17,7 @@
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/models_panel.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/software_panel.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/sunnylink_panel.h"
+#include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/service_panel.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/lateral_panel.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/longitudinal_panel.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/osm_panel.h"
@@ -92,6 +93,7 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
     PanelInfo("   " + tr("OSM"), new OsmPanel(this), "../../sunnypilot/selfdrive/assets/offroad/icon_map.png"),
     PanelInfo("   " + tr("Trips"), new TripsPanel(this), "../../sunnypilot/selfdrive/assets/offroad/icon_trips.png"),
     PanelInfo("   " + tr("Vehicle"), new VehiclePanel(this), "../../sunnypilot/selfdrive/assets/offroad/icon_vehicle.png"),
+    PanelInfo("   " + tr("Service"), new ServicePanelSP(this), "../../sunnypilot/selfdrive/assets/offroad/icon_service.png"),
     PanelInfo("   " + tr("Firehose"), new FirehosePanel(this), "../../sunnypilot/selfdrive/assets/offroad/icon_firehose.svg"),
     PanelInfo("   " + tr("Developer"), new DeveloperPanelSP(this), "../assets/icons/shell.png"),
   };
