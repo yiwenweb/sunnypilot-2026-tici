@@ -28,23 +28,9 @@ void ExperimentalButtonSP::updateState(const UIState &s) {
 
 void ExperimentalButtonSP::drawButton(QPainter &p) {
   if (dynamic_experimental_control) {
-    QPixmap left_half = engage_img.copy(0, 0, engage_img.width() / 2, engage_img.height());
-    QPixmap right_half = experimental_img.copy(experimental_img.width() / 2, 0, experimental_img.width() / 2, experimental_img.height());
-
-    QPixmap combined_img(engage_img.width(), engage_img.height());
-    combined_img.fill(Qt::transparent);
-
-    QPainter combined_painter(&combined_img);
-
-    combined_painter.setOpacity(dec_mpc_mode == 1 ? 0.1 : 1.0);
-    combined_painter.drawPixmap(0, 0, left_half);
-
-    combined_painter.setOpacity(dec_mpc_mode == 1 ? 1.0 : 0.1);
-    combined_painter.drawPixmap(engage_img.width() / 2, 0, right_half);
-
-    combined_painter.end();
-
-    drawIcon(p, QPoint(btn_size / 2, btn_size / 2), combined_img, QColor(0, 0, 0, 166), (isDown() || !engageable) ? 0.6 : 1.0);
+    // Show the full experimental icon instead of splitting it in half
+    // with one half dimmed, which looked like a half-shadowed icon
+    drawIcon(p, QPoint(btn_size / 2, btn_size / 2), experimental_img, QColor(0, 0, 0, 166), (isDown() || !engageable) ? 0.6 : 1.0);
   } else {
     ExperimentalButton::drawButton(p);
   }

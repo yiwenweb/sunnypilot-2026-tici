@@ -269,8 +269,8 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
   if (!reversing) {
     // Smart Cruise Control
     int x_offset = -260;
-    int y1_offset = -80;
-    int y2_offset = -140;
+    int y1_offset = -60;
+    int y2_offset = -120;
 
     int y_scc_v = 0, y_scc_m = 0;
     const int orders[2] = {y1_offset, y2_offset};
@@ -762,7 +762,7 @@ void HudRendererSP::drawRoadName(QPainter &p, const QRect &surface_rect) {
 
   // Center at top of screen (match raylib: rect.x + width/2 - rect_width/2, rect.y - 4)
   // Height enlarged 20% from 60 -> 72
-  QRect road_rect(surface_rect.x() + surface_rect.width() / 2 - rect_width / 2, surface_rect.y() - 4, rect_width, 72);
+  QRect road_rect(surface_rect.x() + surface_rect.width() / 2 - rect_width / 2, surface_rect.y() + 16, rect_width, 72);
 
   p.setPen(Qt::NoPen);
   p.setBrush(QColor(0, 0, 0, 120));
