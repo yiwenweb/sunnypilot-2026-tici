@@ -3,7 +3,7 @@ import numpy as np
 from opendbc.can import CANPacker
 from opendbc.car import Bus, structs, ACCELERATION_DUE_TO_GRAVITY, DT_CTRL
 from opendbc.car.interfaces import CarControllerBase
-from opendbc.car.lateral import apply_driver_steer_torque_limits, apply_meas_steer_torque_limits
+from opendbc.car.lateral import apply_driver_steer_torque_limits
 from opendbc.car.common.filter_simple import FirstOrderFilter, HighPassFilter
 from opendbc.car.byd import bydcan
 from opendbc.car.byd.values import CarControllerParams
@@ -147,8 +147,8 @@ class CarController(CarControllerBase, MadsCarController):
             self.steer_softstart_limit = self.steer_softstart_limit + CarControllerParams.STEER_SOFTSTART_STEP
             new_steer = np.clip(new_steer, -self.steer_softstart_limit, self.steer_softstart_limit)
 
-          apply_torque = apply_meas_steer_torque_limits(new_steer, self.apply_torque_last,
-                                                         CS.out.steeringTorqueEps, CarControllerParams)
+          apply_torque = apply_driver_steer_torque_limits(new_steer, self.apply_torque_last,
+                                                          CS.out.steeringTorque, CarControllerParams)
 
           # 门总接管序列: Act=1 后必须等 EPS CruiseActivated=1 才发扭矩。
           # 在 Cru=0 时发非零扭矩 -> panda 的 steer_req=Active&&CruiseActivated 判为"未接管却
