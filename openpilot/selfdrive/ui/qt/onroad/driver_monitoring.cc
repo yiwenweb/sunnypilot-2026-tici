@@ -31,9 +31,19 @@ void DriverMonitorRenderer::updateState(const UIState &s) {
   prepared_active = car_state.getLkasPrepared();
   prepared_frames = car_state.getLkasPreparedFrames();
 
+  // Throttle the param read to once per ~2s (40 frames @ 20Hz) to avoid
+  // constructing a Params object every frame, which can block/crash on onroad transition.
+  uint32_t frame_id = sm.rcv_frame("driverStateV2");
+  if (frame_id != disable_dm_frame) {
+    disable_dm_frame = frame_id;
+    if (frame_id % 40 == 1) {
+      disable_dm = Params().getBool("DisableDriverMonitoring");
+    }
+  }
+
   is_visible = sm["selfdriveState"].getSelfdriveState().getAlertSize() == cereal::SelfdriveState::AlertSize::NONE &&
                sm.rcv_frame("driverStateV2") > s.scene.started_frame &&
-               !Params().getBool("DisableDriverMonitoring");
+               !disable_dm;
   if (!is_visible) return;
 
   // 2026 dmonitoringd publishes DriverMonitoringState (new), not the DEPRECATED variant.
@@ -41,6 +51,14 @@ void DriverMonitorRenderer::updateState(const UIState &s) {
   //   old.isActiveMode  ->  new.activePolicy == MonitoringPolicy.vision
   //   old.isRHD         ->  new.isRHD
   // (mapping confirmed by openpilot/selfdrive/test/process_replay/migration.py)
+  //
+  // Guard against the onroad race where driverMonitoringState has not arrived yet:
+  // accessing getDriverMonitoringState() before its first frame returns an
+  // uninitialized capnp reader, and reading getActivePolicy() on it SIGABRTs.
+  if (!sm.updated("driverMonitoringState") && sm.rcv_frame("driverMonitoringState") == 0) {
+    return;
+  }
+
   auto dm_state = sm["driverMonitoringState"].getDriverMonitoringState();
   is_active = (dm_state.getActivePolicy() == cereal::DriverMonitoringState::MonitoringPolicy::VISION);
   is_rhd = dm_state.getIsRHD();

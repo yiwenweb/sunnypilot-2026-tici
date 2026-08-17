@@ -21,6 +21,8 @@ private:
   bool prepared_active = false;
   uint16_t prepared_frames = 0;
   float dm_fade_state = 1.0;
+  bool disable_dm = false;
+  uint32_t disable_dm_frame = 0;
   QPixmap dm_img;
   std::vector<vec3> face_kpts_draw;
 };
