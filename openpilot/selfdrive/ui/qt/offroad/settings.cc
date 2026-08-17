@@ -55,6 +55,13 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
       false,
     },
     {
+      "DisableDriverMonitoring",
+      tr("Disable Driver Monitoring"),
+      tr("Turn off the driver facing camera monitoring. The on-screen driver face icon and driver distraction alerts will be disabled."),
+      "../assets/icons/monitoring.png",
+      false,
+    },
+    {
       "RecordFront",
       tr("Record and Upload Driver Camera"),
       tr("Upload data from the driver facing camera and help improve the driver monitoring algorithm."),

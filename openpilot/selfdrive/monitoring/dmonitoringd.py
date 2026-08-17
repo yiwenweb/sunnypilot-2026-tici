@@ -15,6 +15,7 @@ def dmonitoringd_thread():
 
   DM = DriverMonitoring(rhd_saved=params.get_bool("IsRhdDetected"), always_on=params.get_bool("AlwaysOnDM"))
   demo_mode=False
+  disable_dm = params.get_bool("DisableDriverMonitoring")
 
   # 20Hz <- dmonitoringmodeld
   while True:
@@ -24,7 +25,11 @@ def dmonitoringd_thread():
       continue
 
     valid = sm.all_checks()
-    if demo_mode and sm.valid['driverStateV2']:
+    if disable_dm:
+      # Skip the policy step entirely so no distraction/fatigue state accumulates;
+      # the DM object stays in its initial safe state (alert_level=none).
+      pass
+    elif demo_mode and sm.valid['driverStateV2']:
       DM.run_step(sm, demo=True)
     elif valid:
       DM.run_step(sm, demo=demo_mode)
@@ -33,10 +38,11 @@ def dmonitoringd_thread():
     dat = DM.get_state_packet(valid=valid)
     pm.send('driverMonitoringState', dat)
 
-    # load live always-on toggle
+    # load live toggles
     if sm['driverStateV2'].frameId % 40 == 1:
       DM.always_on = params.get_bool("AlwaysOnDM")
       demo_mode = params.get_bool("IsDriverViewEnabled")
+      disable_dm = params.get_bool("DisableDriverMonitoring")
 
     # save rhd virtual toggle every 5 mins
     if (sm['driverStateV2'].frameId % 6000 == 0 and not demo_mode and

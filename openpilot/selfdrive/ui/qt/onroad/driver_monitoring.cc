@@ -32,7 +32,8 @@ void DriverMonitorRenderer::updateState(const UIState &s) {
   prepared_frames = car_state.getLkasPreparedFrames();
 
   is_visible = sm["selfdriveState"].getSelfdriveState().getAlertSize() == cereal::SelfdriveState::AlertSize::NONE &&
-               sm.rcv_frame("driverStateV2") > s.scene.started_frame;
+               sm.rcv_frame("driverStateV2") > s.scene.started_frame &&
+               !Params().getBool("DisableDriverMonitoring");
   if (!is_visible) return;
 
   // 2026 dmonitoringd publishes DriverMonitoringState (new), not the DEPRECATED variant.
