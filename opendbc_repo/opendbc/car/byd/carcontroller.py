@@ -88,8 +88,8 @@ class CarController(CarControllerBase, MadsCarController):
 
 
   def update(self, CC, CC_SP, CS, now_nanos):
-    # === MADS 状态更新（每帧调用） ===
-    self.update(self.CP, CC, CC_SP, self.frame)
+    # === MADS 状态更新（每帧调用，显式通过基类调用避免递归） ===
+    MadsCarController.update(self, CC, CC_SP, self.frame)
     
     can_sends = []
 
