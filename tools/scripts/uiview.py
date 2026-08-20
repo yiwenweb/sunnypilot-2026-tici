@@ -52,7 +52,7 @@ if __name__ == "__main__":
   lp.speedLimit.resolver.speedLimitValid = True
   lp.speedLimit.resolver.speedLimitLastValid = True
   lp.speedLimit.resolver.source = custom.LongitudinalPlanSP.SpeedLimit.Source.map
-  lp.speedLimit.assist.state = custom.LongitudinalPlanSP.SpeedLimit.Assist.AssistState.inactive
+  lp.speedLimit.assist.state = custom.LongitudinalPlanSP.SpeedLimit.AssistState.inactive
 
   msgs['pandaStates'] = messaging.new_message('pandaStates', 1)
   msgs['pandaStates'].pandaStates[0].ignitionLine = True
