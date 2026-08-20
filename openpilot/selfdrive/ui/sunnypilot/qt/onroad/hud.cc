@@ -316,11 +316,15 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     bool showSpeedLimit;
     bool speed_limit_assist_pre_active_pulse = pulseElement(speedLimitAssistFrame);
 
-    // Position speed limit sign next to set speed box
+    // Position speed limit sign next to set speed box.
+    // Matches raylib speed_limit.py _render():
+    //   x = rect.x + 60 + width + 30 - 6  (screen coords, minus UI_BORDER_SIZE=30 -> local)
+    //   y = rect.y + 45 - 6
+    //   height = set_speed_height + 6*2 = 216
     const int sign_width = is_metric ? 200 : 172;
-    const int sign_x = is_metric ? 280 : 272;
-    const int sign_y = 45;
-    const int sign_height = 204;
+    const int sign_x = is_metric ? 284 : 256;
+    const int sign_y = 39;
+    const int sign_height = 216;
     QRect sign_rect(sign_x, sign_y, sign_width, sign_height);
 
     if (speedLimitAssistState == cereal::LongitudinalPlanSP::SpeedLimit::AssistState::PRE_ACTIVE) {
@@ -566,114 +570,110 @@ void HudRendererSP::drawSpeedLimitSigns(QPainter &p, QRect &sign_rect) {
     speedLimitSubText = (speedLimitOffset > 0 ? "" : "-") + QString::number(std::nearbyint(speedLimitOffset));
   }
 
-  float speedLimitSubTextFactor = is_metric ? 0.5 : 0.6;
-  if (speedLimitSubText.size() >= 3) {
-    speedLimitSubTextFactor = 0.475;
-  }
-
   int alpha = 255;
-  QColor red_color = QColor(255, 0, 0, alpha);
+  // Matches raylib Colors.RED = (235, 32, 32)
+  QColor red_color = QColor(235, 32, 32, alpha);
   QColor speed_color = (speedLimitWarningEnabled && overspeed) ? red_color :
                        (!speedLimitValid && speedLimitLastValid ? QColor(0x91, 0x9b, 0x95, 0xf1) : QColor(0, 0, 0, alpha));
 
   if (is_metric) {
-    // EU Vienna Convention style circular sign
-    QRect vienna_rect = sign_rect;
-    int circle_size = std::min(vienna_rect.width(), vienna_rect.height());
-    QRect circle_rect(vienna_rect.x(), vienna_rect.y(), circle_size, circle_size);
+    // EU Vienna Convention style circular sign.
+    // Matches raylib _render_vienna(): radius = (width + 18) / 2,
+    // red ring inner radius = radius * 0.75, outer = radius.
+    qreal radius = (sign_rect.width() + 18) / 2.0;
+    QPointF center(sign_rect.x() + sign_rect.width() / 2.0,
+                   sign_rect.y() + sign_rect.height() / 2.0);
 
-    if (vienna_rect.width() > vienna_rect.height()) {
-      circle_rect.moveLeft(vienna_rect.x() + (vienna_rect.width() - circle_size) / 2);
-    } else if (vienna_rect.height() > vienna_rect.width()) {
-      circle_rect.moveTop(vienna_rect.y() + (vienna_rect.height() - circle_size) / 2);
-    }
-
-    // White background circle
+    // White background circle (diameter = width + 18)
     p.setPen(Qt::NoPen);
     p.setBrush(QColor(255, 255, 255, alpha));
-    p.drawEllipse(circle_rect);
+    p.drawEllipse(center, radius, radius);
 
-    // Red border ring with color coding
-    QRect red_ring = circle_rect;
-
+    // Red ring: outer radius = radius, inner radius = radius * 0.75
     p.setBrush(red_color);
-    p.drawEllipse(red_ring);
-
-    // Center white circle for text
-    int ring_size = circle_size * 0.12;
-    QRect center_circle = red_ring.adjusted(ring_size, ring_size, -ring_size, -ring_size);
+    p.drawEllipse(center, radius, radius);
     p.setBrush(QColor(255, 255, 255, alpha));
-    p.drawEllipse(center_circle);
+    p.drawEllipse(center, radius * 0.75, radius * 0.75);
 
     // Speed value, smaller font for 3+ digits
     int font_size = (speedLimitStr.size() >= 3) ? 70 : 85;
     p.setFont(InterFont(font_size, QFont::Bold));
-
     p.setPen(speed_color);
-    p.drawText(center_circle, Qt::AlignCenter, speedLimitStr);
+    QRectF text_rect(center.x() - radius, center.y() - radius, radius * 2, radius * 2);
+    p.drawText(text_rect, Qt::AlignCenter, speedLimitStr);
 
-    // Offset value in small circular box
+    // Offset value in small circular box.
+    // Matches raylib: s_radius = radius * 0.4, s_center = (rect.x + width - s_radius/2, rect.y + s_radius/2)
     if (!speedLimitSubText.isEmpty() && hasSpeedLimit) {
-      int offset_circle_size = circle_size * 0.4;
-      int overlap = offset_circle_size * 0.25;
-      QRect offset_circle_rect(
-        circle_rect.right() - offset_circle_size/1.25 + overlap,
-        circle_rect.top() - offset_circle_size/1.75 + overlap,
-        offset_circle_size,
-        offset_circle_size
-      );
+      qreal s_radius = radius * 0.4;
+      QPointF s_center(sign_rect.x() + sign_rect.width() - s_radius / 2.0,
+                       sign_rect.y() + s_radius / 2.0);
 
-      p.setPen(QPen(QColor(77, 77, 77, 255), 6));
+      // Dark grey ring (width 3) over black circle
+      p.setPen(Qt::NoPen);
+      p.setBrush(QColor(77, 77, 77, 255));
+      p.drawEllipse(s_center, s_radius, s_radius);
       p.setBrush(QColor(0, 0, 0, alpha));
-      p.drawEllipse(offset_circle_rect);
+      p.drawEllipse(s_center, s_radius - 3, s_radius - 3);
 
-      p.setFont(InterFont(offset_circle_size * speedLimitSubTextFactor, QFont::Bold));
+      qreal font_scale = (speedLimitSubText.size() < 3) ? 0.5 : 0.45;
+      int sub_font_size = int(s_radius * 2 * font_scale);
+      p.setFont(InterFont(sub_font_size, QFont::Bold));
       p.setPen(QColor(255, 255, 255, alpha));
-      p.drawText(offset_circle_rect, Qt::AlignCenter, speedLimitSubText);
+      QRectF sub_rect(s_center.x() - s_radius, s_center.y() - s_radius, s_radius * 2, s_radius * 2);
+      p.drawText(sub_rect, Qt::AlignCenter, speedLimitSubText);
     }
   } else {
-    // US/Canada MUTCD style sign
+    // US/Canada MUTCD style sign.
+    // Matches raylib _render_mutcd(): outer roundness 0.35, inner radius = outer - 10.
+    qreal outer_radius = 0.35 * sign_rect.width() / 2.0;
+    qreal inner_radius = outer_radius - 10.0;
+
     p.setPen(Qt::NoPen);
     p.setBrush(QColor(255, 255, 255, alpha));
-    p.drawRoundedRect(sign_rect, 32, 32);
+    p.drawRoundedRect(sign_rect, outer_radius, outer_radius);
 
-    // Inner border with violation color coding
-    QRect inner_rect = sign_rect.adjusted(10, 10, -10, -10);
-    QColor border_color = QColor(0, 0, 0, alpha);
-
-    p.setPen(QPen(border_color, 4));
+    // Inner border (4px black line)
+    QRectF inner_rect = QRectF(sign_rect).adjusted(10, 10, -10, -10);
+    p.setPen(QPen(QColor(0, 0, 0, alpha), 4));
     p.setBrush(QColor(255, 255, 255, alpha));
-    p.drawRoundedRect(inner_rect, 22, 22);
+    p.drawRoundedRect(inner_rect, inner_radius, inner_radius);
 
-    // "SPEED LIMIT" text
-    p.setFont(InterFont(40, QFont::DemiBold));
-    p.setPen(QColor(0, 0, 0, alpha));
-    p.drawText(inner_rect.adjusted(0, 10, 0, 0), Qt::AlignTop | Qt::AlignHCenter, tr("SPEED"));
-    p.drawText(inner_rect.adjusted(0, 50, 0, 0), Qt::AlignTop | Qt::AlignHCenter, tr("LIMIT"));
+    // Text centered at rect.y + 40 / 80 / 150 (matches _draw_text_centered)
+    auto drawCentered = [&](const QString &text, int font_size, QFont::Weight weight, qreal center_y, const QColor &color) {
+      p.setFont(InterFont(font_size, weight));
+      QFontMetrics fm(p.font());
+      int line_height = fm.height();
+      QRectF line_rect(sign_rect.x(), center_y - line_height / 2.0, sign_rect.width(), line_height);
+      p.setPen(color);
+      p.drawText(line_rect, Qt::AlignCenter, text);
+    };
 
-    // Speed value with color coding
-    p.setFont(InterFont(90, QFont::Bold));
+    drawCentered(tr("SPEED"), 40, QFont::DemiBold, sign_rect.y() + 40, QColor(0, 0, 0, alpha));
+    drawCentered(tr("LIMIT"), 40, QFont::DemiBold, sign_rect.y() + 80, QColor(0, 0, 0, alpha));
+    drawCentered(speedLimitStr, 90, QFont::Bold, sign_rect.y() + 150, speed_color);
 
-    p.setPen(speed_color);
-    p.drawText(inner_rect.adjusted(0, 80, 0, 0), Qt::AlignTop | Qt::AlignHCenter, speedLimitStr);
-
-    // Offset value in small box
+    // Offset value in small box.
+    // Matches raylib: box_sz = width * 0.3, overlap = box_sz * 0.2,
+    // s_rect = (x + width - box_sz/1.5 + overlap, y - box_sz/1.25 + overlap, box_sz, box_sz)
     if (!speedLimitSubText.isEmpty() && hasSpeedLimit) {
-      int offset_box_size = sign_rect.width() * 0.4;
-      int overlap = offset_box_size * 0.25;
-      QRect offset_box_rect(
-        sign_rect.right() - offset_box_size/1.5 + overlap,
-        sign_rect.top() - offset_box_size/1.25 + overlap,
-        offset_box_size,
-        offset_box_size
+      qreal box_sz = sign_rect.width() * 0.3;
+      qreal overlap = box_sz * 0.2;
+      QRectF offset_box_rect(
+        sign_rect.x() + sign_rect.width() - box_sz / 1.5 + overlap,
+        sign_rect.y() - box_sz / 1.25 + overlap,
+        box_sz,
+        box_sz
       );
 
-      int corner_radius = offset_box_size * 0.2;
+      qreal box_radius = 0.35 * box_sz / 2.0;
       p.setPen(QPen(QColor(77, 77, 77, 255), 6));
       p.setBrush(QColor(0, 0, 0, alpha));
-      p.drawRoundedRect(offset_box_rect, corner_radius, corner_radius);
+      p.drawRoundedRect(offset_box_rect, box_radius, box_radius);
 
-      p.setFont(InterFont(offset_box_size * speedLimitSubTextFactor, QFont::Bold));
+      qreal f_scale = (speedLimitSubText.size() < 3) ? 0.6 : 0.475;
+      int sub_font_size = int(box_sz * f_scale);
+      p.setFont(InterFont(sub_font_size, QFont::Bold));
       p.setPen(QColor(255, 255, 255, alpha));
       p.drawText(offset_box_rect, Qt::AlignCenter, speedLimitSubText);
     }
@@ -712,11 +712,12 @@ void HudRendererSP::drawUpcomingSpeedLimit(QPainter &p) {
   QString speedStr = QString::number(std::nearbyint(speedLimitAhead));
   QString distanceStr = outputDistance();
 
-  // Position below current speed limit sign
+  // Position below current speed limit sign.
+  // Must match the sign_rect computed in drawSpeedLimitSigns().
   const int sign_width = is_metric ? 200 : 172;
-  const int sign_x = is_metric ? 280 : 272;
-  const int sign_y = 45;
-  const int sign_height = 204;
+  const int sign_x = is_metric ? 284 : 256;
+  const int sign_y = 39;
+  const int sign_height = 216;
 
   const int ahead_width = 170;
   const int ahead_height = 160;
@@ -724,24 +725,38 @@ void HudRendererSP::drawUpcomingSpeedLimit(QPainter &p) {
   const int ahead_y = sign_y + sign_height + 10;
 
   QRect ahead_rect(ahead_x, ahead_y, ahead_width, ahead_height);
+  // Raylib draw_rectangle_rounded(rect, 0.35) uses roundness=0.35 relative to
+  // half the shorter side: 0.35 * 160 / 2 = 28px radius.
+  const int ahead_radius = 28;
   p.setPen(QPen(QColor(255, 255, 255, 100), 3));
   p.setBrush(QColor(0, 0, 0, 180));
-  p.drawRoundedRect(ahead_rect, 16, 16);
+  p.drawRoundedRect(ahead_rect, ahead_radius, ahead_radius);
 
-  // "AHEAD" label
-  p.setFont(InterFont(40, QFont::DemiBold));
-  p.setPen(QColor(200, 200, 200, 255));
-  p.drawText(ahead_rect.adjusted(0, 4, 0, 0), Qt::AlignTop | Qt::AlignHCenter, tr("AHEAD"));
+  // Text colors match raylib: AHEAD and distance use GREY (145,155,149),
+  // speed value uses WHITE.
+  const QColor grey_color(145, 155, 149, 255);
+  const QColor white_color(255, 255, 255, 255);
 
-  // Speed value
-  p.setFont(InterFont(70, QFont::Bold));
-  p.setPen(QColor(255, 255, 255, 255));
-  p.drawText(ahead_rect.adjusted(0, 38, 0, 0), Qt::AlignTop | Qt::AlignHCenter, speedStr);
+  // Vertical centering matches raylib's _draw_text_centered: each text block's
+  // center is at rect.y + offset (28 / 82 / 134), so build a per-line rect whose
+  // vertical center lands on that exact pixel.
+  auto drawCentered = [&](const QString &text, int font_size, QFont::Weight weight, int center_y, const QColor &color) {
+    p.setFont(InterFont(font_size, weight));
+    QFontMetrics fm(p.font());
+    int line_height = fm.height();
+    QRect line_rect(ahead_rect.x(), ahead_rect.y() + center_y - line_height / 2, ahead_rect.width(), line_height);
+    p.setPen(color);
+    p.drawText(line_rect, Qt::AlignCenter, text);
+  };
 
-  // Distance
-  p.setFont(InterFont(40, QFont::Normal));
-  p.setPen(QColor(180, 180, 180, 255));
-  p.drawText(ahead_rect.adjusted(0, 110, 0, 0), Qt::AlignTop | Qt::AlignHCenter, distanceStr);
+  // "AHEAD" label (font_demi 40, center y+28)
+  drawCentered(tr("AHEAD"), 40, QFont::DemiBold, 28, grey_color);
+
+  // Speed value (font_bold 70, center y+82)
+  drawCentered(speedStr, 70, QFont::Bold, 82, white_color);
+
+  // Distance (font_norm 36, center y+134)
+  drawCentered(distanceStr, 36, QFont::Normal, 134, grey_color);
 }
 
 void HudRendererSP::drawRoadName(QPainter &p, const QRect &surface_rect) {
