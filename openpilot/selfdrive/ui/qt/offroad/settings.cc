@@ -336,8 +336,8 @@ void DevicePanel::updateCalibDescription() {
     try {
       AlignedBuffer aligned_buf;
       capnp::FlatArrayMessageReader cmsg(aligned_buf.align(calib_bytes.data(), calib_bytes.size()));
-      auto calib = cmsg.getRoot<cereal::Event>().getLiveCalibration();
-      if (calib.getCalStatus() != cereal::LiveCalibrationData::Status::UNCALIBRATED) {
+      auto calib = cmsg.getRoot<cereal::Event>().getExtrinsicsCalibration();
+      if (calib.getCalStatus() != cereal::ExtrinsicsCalibration::Status::UNCALIBRATED) {
         double pitch = calib.getRpyCalib()[1] * (180 / M_PI);
         double yaw = calib.getRpyCalib()[2] * (180 / M_PI);
         desc += tr(" Your device is pointed %1° %2 and %3° %4.")
@@ -355,7 +355,7 @@ void DevicePanel::updateCalibDescription() {
     try {
       AlignedBuffer aligned_buf;
       capnp::FlatArrayMessageReader cmsg(aligned_buf.align(lag_bytes.data(), lag_bytes.size()));
-      lag_perc = cmsg.getRoot<cereal::Event>().getLiveDelay().getCalPerc();
+      lag_perc = cmsg.getRoot<cereal::Event>().getLateralDelay().getCalPerc();
     } catch (kj::Exception) {
       qInfo() << "invalid LiveDelay";
     }
@@ -371,7 +371,7 @@ void DevicePanel::updateCalibDescription() {
     try {
       AlignedBuffer aligned_buf;
       capnp::FlatArrayMessageReader cmsg(aligned_buf.align(torque_bytes.data(), torque_bytes.size()));
-      auto torque = cmsg.getRoot<cereal::Event>().getLiveTorqueParameters();
+      auto torque = cmsg.getRoot<cereal::Event>().getLateralTorqueParameters();
       // don't add for non-torque cars
       if (torque.getUseParams()) {
         int torque_perc = torque.getCalPerc();
