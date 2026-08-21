@@ -132,7 +132,7 @@ void HudRendererSP::updateState(const UIState &s) {
     torquedUseParams = ltp.getUseParams();
     latAccelFactorFiltered = ltp.getLatAccelFactorFiltered();
     frictionCoefficientFiltered = ltp.getFrictionCoefficientFiltered();
-    liveValid = ltp.getLiveValid();
+    liveValid = ltp.getValid();
   }
 
   latActive = car_control.getLatActive();
