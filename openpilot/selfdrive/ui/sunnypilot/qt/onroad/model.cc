@@ -25,7 +25,7 @@ void ModelRendererSP::draw(QPainter &painter, const QRect &surface_rect) {
   auto *s = uiState();
   auto &sm = *(s->sm);
 
-  if (sm.rcv_frame("liveCalibration") < s->scene.started_frame ||
+  if (sm.rcv_frame("extrinsicsCalibration") < s->scene.started_frame ||
       sm.rcv_frame("modelV2") < s->scene.started_frame) {
     return;
   }
@@ -33,7 +33,7 @@ void ModelRendererSP::draw(QPainter &painter, const QRect &surface_rect) {
   clip_region = surface_rect.adjusted(-CLIP_MARGIN, -CLIP_MARGIN, CLIP_MARGIN, CLIP_MARGIN);
   experimental_mode = sm["selfdriveState"].getSelfdriveState().getExperimentalMode();
   longitudinal_control = sm["carParams"].getCarParams().getOpenpilotLongitudinalControl();
-  path_offset_z = sm["liveCalibration"].getLiveCalibration().getHeight()[0];
+  path_offset_z = sm["extrinsicsCalibration"].getExtrinsicsCalibration().getHeight()[0];
   updateCameraOffset();
 
   painter.save();

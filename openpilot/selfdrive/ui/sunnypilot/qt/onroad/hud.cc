@@ -54,7 +54,7 @@ void HudRendererSP::updateState(const UIState &s) {
   const auto is_gps_location_external = sm.rcv_frame("gpsLocationExternal") > 1;
   const char *gps_source = is_gps_location_external ? "gpsLocationExternal" : "gpsLocation";
   const auto gpsLocation = is_gps_location_external ? sm[gps_source].getGpsLocationExternal() : sm[gps_source].getGpsLocation();
-  const auto ltp = sm["liveTorqueParameters"].getLiveTorqueParameters();
+  const auto ltp = sm["lateralTorqueParameters"].getLateralTorqueParameters();
   const auto car_params = sm["carParams"].getCarParams();
   const auto car_params_sp = sm["carParamsSP"].getCarParamsSP();
   const auto lp_sp = sm["longitudinalPlanSP"].getLongitudinalPlanSP();
@@ -113,8 +113,8 @@ void HudRendererSP::updateState(const UIState &s) {
 
   reversing = reverse_allowed;
 
-  if (sm.updated("liveParameters")) {
-    roll = sm["liveParameters"].getLiveParameters().getRoll();
+  if (sm.updated("vehicleParameters")) {
+    roll = sm["vehicleParameters"].getVehicleParameters().getRoll();
   }
 
   if (sm.updated("deviceState")) {
@@ -128,7 +128,7 @@ void HudRendererSP::updateState(const UIState &s) {
     bearingDeg = gpsLocation.getBearingDeg();
   }
 
-  if (sm.updated("liveTorqueParameters")) {
+  if (sm.updated("lateralTorqueParameters")) {
     torquedUseParams = ltp.getUseParams();
     latAccelFactorFiltered = ltp.getLatAccelFactorFiltered();
     frictionCoefficientFiltered = ltp.getFrictionCoefficientFiltered();
@@ -168,10 +168,10 @@ void HudRendererSP::updateState(const UIState &s) {
   // TorqueBar & RocketFuel
   torqueBar = s.scene.torque_bar;
   rocketFuel = s.scene.rocket_fuel;
-  if (sm.updated("controlsState") || sm.updated("carState") || sm.updated("liveParameters")) {
+  if (sm.updated("controlsState") || sm.updated("carState") || sm.updated("vehicleParameters")) {
     // TorqueBar: update lateral torque utilization filter
     const auto controls_state = sm["controlsState"].getControlsState();
-    const auto live_parameters = sm["liveParameters"].getLiveParameters();
+    const auto live_parameters = sm["vehicleParameters"].getVehicleParameters();
     const float max_lat_accel = car_params.getMaxLateralAccel();
 
     if (controls_state.getLateralControlState().which() == cereal::ControlsState::LateralControlState::ANGLE_STATE ||

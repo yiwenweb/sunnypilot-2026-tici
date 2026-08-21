@@ -291,6 +291,10 @@ void ModelsPanel::handleBundleDownloadProgress() {
         progressBar = onPolicyProgressBar;
         modelFrame = onPolicyFrame;
         break;
+      case cereal::ModelManagerSP::Model::Type::CHUNKED:
+        progressBar = supercomboProgressBar;
+        modelFrame = supercomboFrame;
+        break;
     }
 
     const auto &progress = model.getArtifact().getDownloadProgress();
@@ -489,7 +493,7 @@ void ModelsPanel::updateLabels() {
     auto liveDelayBytes = params.get("LiveDelay");
     if (!liveDelayBytes.empty()) {
       auto LD = loadCerealEvent(params, "LiveDelay");
-      float lateralDelay = LD->getLiveDelay().getLateralDelay();
+      float lateralDelay = LD->getLateralDelay().getLateralDelay();
       desc += QString("<br><br><b><span style=\"color:#e0e0e0\">%1</span></b> <span style=\"color:#e0e0e0\">%2 s</span>")
               .arg(tr("Live Steer Delay:")).arg(QString::number(lateralDelay, 'f', 3));
     }

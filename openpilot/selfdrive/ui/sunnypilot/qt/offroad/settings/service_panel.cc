@@ -64,7 +64,7 @@ void ServicePanelSP::refresh() {
   try {
     AlignedBuffer aligned_buf;
     capnp::FlatArrayMessageReader cmsg(aligned_buf.align(calib_bytes.data(), calib_bytes.size()));
-    auto calib = cmsg.getRoot<cereal::Event>().getLiveCalibration();
+    auto calib = cmsg.getRoot<cereal::Event>().getExtrinsicsCalibration();
 
     // Pitch / yaw limits for TICI (matches calibrationd.py)
     constexpr double pitch_min = -0.09074112085129739;
@@ -102,13 +102,13 @@ void ServicePanelSP::refresh() {
     // Calibration Status
     QString status_text;
     switch (calib.getCalStatus()) {
-      case cereal::LiveCalibrationData::Status::CALIBRATED:
+      case cereal::ExtrinsicsCalibration::Status::CALIBRATED:
         status_text = tr("Calibrated");
         break;
-      case cereal::LiveCalibrationData::Status::INVALID:
+      case cereal::ExtrinsicsCalibration::Status::INVALID:
         status_text = tr("Invalid");
         break;
-      case cereal::LiveCalibrationData::Status::RECALIBRATING:
+      case cereal::ExtrinsicsCalibration::Status::RECALIBRATING:
         status_text = tr("Recalibrating");
         break;
       default:
@@ -116,7 +116,7 @@ void ServicePanelSP::refresh() {
         break;
     }
     calibrationStatus->setValue(status_text,
-      calib.getCalStatus() == cereal::LiveCalibrationData::Status::CALIBRATED ? QString("#00ffcc") : QString("#ffb400"));
+      calib.getCalStatus() == cereal::ExtrinsicsCalibration::Status::CALIBRATED ? QString("#00ffcc") : QString("#ffb400"));
 
     // Calibration Progress
     calibrationProgress->setValue(QString("%1%").arg(calib.getCalPerc()));
