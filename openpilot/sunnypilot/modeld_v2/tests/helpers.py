@@ -5,8 +5,8 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
-import pickle
-import pytest
+import pathlib
+import tempfile
 
 import openpilot.sunnypilot.models.helpers as helpers
 import openpilot.sunnypilot.modeld_v2.modeld as modeld_module
@@ -163,14 +163,16 @@ ARCHETYPES = {
 def make_pkl_data(archetype):
   return {
     'metadata': archetype.metadata_structure,
-    (CAM_W, CAM_H): {'run_policy': _noop_jit, 'warp_enqueue': _noop_jit},
+    'run_policy': _noop_jit,
+    (CAM_W, CAM_H): _noop_jit,
   }
 
 
 def write_pkl(tmp_path, archetype):
+  from openpilot.selfdrive.modeld.helpers import dump_oob
   pkl_path = tmp_path / 'driving_test_tinygrad.pkl'
   with open(pkl_path, 'wb') as f:
-    pickle.dump(make_pkl_data(archetype), f)
+    dump_oob(make_pkl_data(archetype), f)
   return pkl_path
 
 
@@ -181,16 +183,19 @@ def make_bundle(archetype):
   )
 
 
-@pytest.fixture
+def tmp_path():
+  with tempfile.TemporaryDirectory() as d:
+    yield pathlib.Path(d)
+
+
 def patch_modeld(monkeypatch):
   def _patch(bundle):
-    monkeypatch.setattr(helpers, 'get_active_bundle', lambda params=None: bundle, raising=False)
-    monkeypatch.setattr(modeld_module, 'get_active_bundle', lambda params=None: bundle, raising=False)
+    monkeypatch.setattr(helpers, 'get_active_bundle', lambda params=None: bundle)
+    monkeypatch.setattr(modeld_module, 'get_active_bundle', lambda params=None: bundle)
 
   return _patch
 
 
-@pytest.fixture
 def model_state_factory(tmp_path, monkeypatch, patch_modeld):
   from openpilot.common.hardware import hw
 
