@@ -23,13 +23,13 @@ void update_state(UIState *s) {
   SubMaster &sm = *(s->sm);
   UIScene &scene = s->scene;
 
-  if (sm.updated("liveCalibration")) {
+  if (sm.updated("extrinsicsCalibration")) {
     auto list2rot = [](const capnp::List<float>::Reader &rpy_list) ->Eigen::Matrix3f {
       return euler2rot({rpy_list[0], rpy_list[1], rpy_list[2]}).cast<float>();
     };
 
-    auto live_calib = sm["liveCalibration"].getLiveCalibration();
-    if (live_calib.getCalStatus() == cereal::LiveCalibrationData::Status::CALIBRATED) {
+    auto live_calib = sm["extrinsicsCalibration"].getExtrinsicsCalibration();
+    if (live_calib.getCalStatus() == cereal::ExtrinsicsCalibration::Status::CALIBRATED) {
       auto device_from_calib = list2rot(live_calib.getRpyCalib());
       auto wide_from_device = list2rot(live_calib.getWideFromDeviceEuler());
       s->scene.view_from_calib = VIEW_FROM_DEVICE * device_from_calib;

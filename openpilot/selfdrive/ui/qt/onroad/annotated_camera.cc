@@ -120,7 +120,7 @@ void AnnotatedCameraWidget::paintGL() {
       }
       wide_cam_requested = wide_cam_requested && sm["selfdriveState"].getSelfdriveState().getExperimentalMode();
     }
-    CameraWidget::setStreamType(wide_cam_requested ? VISION_STREAM_WIDE_ROAD : VISION_STREAM_ROAD);
+    CameraWidget::setStreamType(wide_cam_requested ? VISION_STREAM_WIDE_ROAD : VISION_STREAM_NARROW_ROAD);
     CameraWidget::setFrameId(sm["modelV2"].getModelV2().getFrameId());
     CameraWidget::paintGL();
   }

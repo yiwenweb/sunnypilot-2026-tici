@@ -12,7 +12,7 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   stacked_layout->setStackingMode(QStackedLayout::StackAll);
   main_layout->addLayout(stacked_layout);
 
-  nvg = new AnnotatedCameraWidget(VISION_STREAM_ROAD, this);
+  nvg = new AnnotatedCameraWidget(VISION_STREAM_NARROW_ROAD, this);
 
   QWidget * split_wrapper = new QWidget;
   split = new QHBoxLayout(split_wrapper);
@@ -21,7 +21,7 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   split->addWidget(nvg);
 
   if (getenv("DUAL_CAMERA_VIEW")) {
-    CameraWidget *arCam = new CameraWidget("camerad", VISION_STREAM_ROAD, this);
+    CameraWidget *arCam = new CameraWidget("camerad", VISION_STREAM_NARROW_ROAD, this);
     split->insertWidget(0, arCam);
   }
 

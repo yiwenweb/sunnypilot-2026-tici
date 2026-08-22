@@ -5,7 +5,7 @@
 
 #include "openpilot/selfdrive/ui/qt/util.h"
 
-DriverViewWindow::DriverViewWindow(QWidget* parent) : CameraWidget("camerad", VISION_STREAM_DRIVER, parent) {
+DriverViewWindow::DriverViewWindow(QWidget* parent) : CameraWidget("camerad", VISION_STREAM_CABIN, parent) {
   QObject::connect(this, &CameraWidget::clicked, this, &DriverViewWindow::done);
   QObject::connect(device(), &Device::interactiveTimeout, this, [this]() {
     if (isVisible()) {

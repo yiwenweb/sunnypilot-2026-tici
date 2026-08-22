@@ -110,7 +110,7 @@ void CameraWidget::initializeGL() {
   GLint frame_pos_loc = program->attributeLocation("aPosition");
   GLint frame_texcoord_loc = program->attributeLocation("aTexCoord");
 
-  auto [x1, x2, y1, y2] = requested_stream_type == VISION_STREAM_DRIVER ? std::tuple(0.f, 1.f, 1.f, 0.f) : std::tuple(1.f, 0.f, 1.f, 0.f);
+  auto [x1, x2, y1, y2] = requested_stream_type == VISION_STREAM_CABIN ? std::tuple(0.f, 1.f, 1.f, 0.f) : std::tuple(1.f, 0.f, 1.f, 0.f);
   const uint8_t frame_indicies[] = {0, 1, 2, 0, 2, 3};
   const float frame_coords[4][4] = {
     {-1.0, -1.0, x2, y1}, // bl
