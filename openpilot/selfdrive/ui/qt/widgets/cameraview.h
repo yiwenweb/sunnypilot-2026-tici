@@ -23,6 +23,7 @@
 #endif
 
 #include "msgq/visionipc/visionipc_client.h"
+#include "openpilot/cereal/visionstream.h"
 
 #ifdef SUNNYPILOT
 #include "openpilot/selfdrive/ui/sunnypilot/ui.h"
