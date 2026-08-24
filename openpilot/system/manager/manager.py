@@ -80,7 +80,7 @@ def manager_init() -> None:
   params.put_bool("IsReleaseSpBranch", build_metadata.release_sp_channel, block=True)
   params.put("HardwareSerial", serial, block=True)
 
-  # set dongle id — spinner disabled on C3 (raylib/pyray incompatible with C3 firmware)
+  # set dongle id
   reg_res = register(show_spinner=False)
   if reg_res:
     dongle_id = reg_res
@@ -103,11 +103,6 @@ def manager_init() -> None:
                        commit=build_metadata.openpilot.git_commit,
                        dirty=build_metadata.openpilot.is_dirty,
                        device=HARDWARE.get_device_type())
-
-  # preimport all processes
-  for p in managed_processes.values():
-    p.prepare()
-
 
 def manager_cleanup() -> None:
   # send signals to kill all procs

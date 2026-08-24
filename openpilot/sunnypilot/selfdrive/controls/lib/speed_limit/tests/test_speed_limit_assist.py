@@ -6,7 +6,8 @@ See the LICENSE.md file in the root directory for more details.
 """
 
 import time
-import pytest
+
+from openpilot.common.parameterized import parameterized
 
 from openpilot.cereal import custom
 from opendbc.car.car_helpers import interfaces
@@ -26,9 +27,11 @@ from openpilot.sunnypilot.selfdrive.controls.lib.speed_limit.speed_limit_assist 
   PRE_ACTIVE_GUARD_PERIOD, ACTIVE_STATES, CRUISE_BUTTON_CONFIRM_HOLD
 from openpilot.sunnypilot.selfdrive.selfdrived.button_state_tracker import ButtonStateTracker
 from openpilot.sunnypilot.selfdrive.selfdrived.events import EventsSP
+from openpilot.common.test import OpenpilotTestCase
 
 ButtonEvent = car.CarState.ButtonEvent
 ButtonType = car.CarState.ButtonEvent.Type
+
 SpeedLimitAssistState = custom.LongitudinalPlanSP.SpeedLimit.AssistState
 
 ALL_STATES = tuple(SpeedLimitAssistState.schema.enumerants.values())
@@ -43,21 +46,10 @@ SPEED_LIMITS = {
 DEFAULT_CAR = TOYOTA.TOYOTA_RAV4_TSS2
 
 
-@pytest.fixture
-def car_name(request):
-  return getattr(request, "param", DEFAULT_CAR)
+class TestSpeedLimitAssist(OpenpilotTestCase):
+  car_name = DEFAULT_CAR
 
-
-@pytest.fixture(autouse=True)
-def set_car_name_on_instance(request, car_name):
-  instance = getattr(request, "instance", None)
-  if instance:
-    instance.car_name = car_name
-
-
-class TestSpeedLimitAssist:
-
-  def setup_method(self, method):
+  def setup_method(self):
     self.params = Params()
     self.reset_custom_params()
     self.events_sp = EventsSP()
@@ -67,7 +59,7 @@ class TestSpeedLimitAssist:
     self.pcm_long_max_set_speed = PCM_LONG_REQUIRED_MAX_SET_SPEED[self.sla.is_metric][1]  # use 80 MPH for now
     self.speed_conv = CV.MS_TO_KPH if self.sla.is_metric else CV.MS_TO_MPH
 
-  def teardown_method(self, method):
+  def teardown_method(self):
     self.reset_state()
 
   def _setup_platform(self, car_name):
@@ -110,13 +102,16 @@ class TestSpeedLimitAssist:
     assert not self.sla.is_active
     assert V_CRUISE_UNSET == self.sla.get_v_target_from_control()
 
-  @pytest.mark.parametrize("car_name", [RIVIAN.RIVIAN_R1, TESLA.TESLA_MODEL_Y], indirect=True)
+  @parameterized.expand([RIVIAN.RIVIAN_R1, TESLA.TESLA_MODEL_Y], names=["car_name"])
   def test_disallowed_brands(self, car_name):
     """
       Speed Limit Assist is disabled for the following brands and conditions:
       - All Tesla and is a release branch;
       - All Rivian
     """
+    self.car_name = car_name
+    self.openpilot_setup_method()  # rebuild the platform for this brand
+
     assert not self.sla.enabled
 
     # stay disallowed even when the param may have changed from somewhere else
@@ -283,83 +278,85 @@ class TestSpeedLimitAssist:
         assert self.sla.state in ACTIVE_STATES
 
 
-class TestButtonStateTrackerSLAIntegration:
-    def setup_method(self, method):
-        self.tracker = ButtonStateTracker()
-        self.params = Params()
+class TestButtonStateTrackerSLAIntegration(OpenpilotTestCase):
 
-        self.params.put("IsReleaseSpBranch", True, block=True)
-        self.params.put("SpeedLimitMode", int(Mode.assist), block=True)
-        self.params.put_bool("IsMetric", False, block=True)
-        self.params.put("SpeedLimitOffsetType", 0, block=True)
-        self.params.put("SpeedLimitValueOffset", 0, block=True)
+  def setup_method(self):
 
-        CarInterface = interfaces[DEFAULT_CAR]
-        CP = CarInterface.get_non_essential_params(DEFAULT_CAR)
-        CP.openpilotLongitudinalControl = True
-        CP_SP = CarInterface.get_non_essential_params_sp(CP, DEFAULT_CAR)
+    self.tracker = ButtonStateTracker()
+    self.params = Params()
+    self.params.put("IsReleaseSpBranch", True, block=True)
+    self.params.put("SpeedLimitMode", int(Mode.assist), block=True)
+    self.params.put_bool("IsMetric", False, block=True)
+    self.params.put("SpeedLimitOffsetType", 0, block=True)
+    self.params.put("SpeedLimitValueOffset", 0, block=True)
 
-        self.sla = SpeedLimitAssist(CP, CP_SP)
+    CarInterface = interfaces[DEFAULT_CAR]
+    CP = CarInterface.get_non_essential_params(DEFAULT_CAR)
+    CP.openpilotLongitudinalControl = True
+    CP_SP = CarInterface.get_non_essential_params_sp(CP, DEFAULT_CAR)
+    self.sla = SpeedLimitAssist(CP, CP_SP)
 
-    def _make_cs(self, events=None) -> car.CarState:
-        CS = car.CarState()
-        CS.buttonEvents = events or []
-        return CS
+  def _make_cs(self, events=None) -> car.CarState:
+    CS = car.CarState()
+    CS.buttonEvents = events or []
+    return CS
 
-    def _run_ctrl_frames(self, frames: list[car.CarState]) -> None:
-        for cs in frames:
-            self.tracker.update(cs)
+  def _run_ctrl_frames(self, frames: list[car.CarState]) -> None:
+    for cs in frames:
+      self.tracker.update(cs)
 
-    def test_button_confirm_via_tracker(self) -> None:
-        self._run_ctrl_frames([
-            self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=True)]),
-            self._make_cs(),
-            self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=False)]),
-            self._make_cs(),
-            self._make_cs(),
-        ])
-        self.sla.update_buttons(self.tracker.release_toggle)
-        assert self.sla._get_button_release(req_plus=True, req_minus=False)
+  def test_button_confirm_via_tracker(self) -> None:
+    self._run_ctrl_frames([
+      self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=True)]),
+      self._make_cs(),
+      self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=False)]),
+      self._make_cs(),
+      self._make_cs(),
+    ])
+    self.sla.update_buttons(self.tracker.release_toggle)
+    assert self.sla._get_button_release(req_plus=True, req_minus=False)
 
-    def test_rapid_press_release_between_polls(self) -> None:
-        self.sla.update_buttons(self.tracker.release_toggle)
-        self._run_ctrl_frames([
-            self._make_cs([ButtonEvent(type=ButtonType.decelCruise, pressed=True)]),
-            self._make_cs([ButtonEvent(type=ButtonType.decelCruise, pressed=False)]),
-            self._make_cs(),
-            self._make_cs(),
-            self._make_cs(),
-        ])
-        self.sla.update_buttons(self.tracker.release_toggle)
-        assert self.sla._get_button_release(req_plus=False, req_minus=True)
+  def test_rapid_press_release_between_polls(self) -> None:
+    self.sla.update_buttons(self.tracker.release_toggle)
 
-    def test_multiple_releases_between_polls(self) -> None:
-        self.sla.update_buttons(self.tracker.release_toggle)
-        self._run_ctrl_frames([
-            self._make_cs([
-                ButtonEvent(type=ButtonType.accelCruise, pressed=True),
-                ButtonEvent(type=ButtonType.decelCruise, pressed=True),
-            ]),
-            self._make_cs([
-                ButtonEvent(type=ButtonType.accelCruise, pressed=False),
-                ButtonEvent(type=ButtonType.decelCruise, pressed=False),
-            ]),
-        ])
-        self.sla.update_buttons(self.tracker.release_toggle)
-        assert self.sla._get_button_release(req_plus=True, req_minus=False)
-        assert self.sla._get_button_release(req_plus=False, req_minus=True)
+    self._run_ctrl_frames([
+      self._make_cs([ButtonEvent(type=ButtonType.decelCruise, pressed=True)]),
+      self._make_cs([ButtonEvent(type=ButtonType.decelCruise, pressed=False)]),
+      self._make_cs(),
+      self._make_cs(),
+      self._make_cs(),
+    ])
+    self.sla.update_buttons(self.tracker.release_toggle)
+    assert self.sla._get_button_release(req_plus=False, req_minus=True)
 
-    def test_no_false_positive_same_toggle(self) -> None:
-        self.sla.update_buttons(self.tracker.release_toggle)
-        self.sla.update_buttons(self.tracker.release_toggle)
-        assert not self.sla._get_button_release(req_plus=True, req_minus=False)
-        assert not self.sla._get_button_release(req_plus=False, req_minus=True)
+  def test_multiple_releases_between_polls(self) -> None:
+    self.sla.update_buttons(self.tracker.release_toggle)
 
-    def test_button_confirm_expires(self) -> None:
-        self._run_ctrl_frames([
-            self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=True)]),
-            self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=False)]),
-        ])
-        self.sla.update_buttons(self.tracker.release_toggle)
-        time.sleep(CRUISE_BUTTON_CONFIRM_HOLD + 0.1)
-        assert not self.sla._get_button_release(req_plus=True, req_minus=False)
+    self._run_ctrl_frames([
+      self._make_cs([
+        ButtonEvent(type=ButtonType.accelCruise, pressed=True),
+        ButtonEvent(type=ButtonType.decelCruise, pressed=True),
+      ]),
+      self._make_cs([
+        ButtonEvent(type=ButtonType.accelCruise, pressed=False),
+        ButtonEvent(type=ButtonType.decelCruise, pressed=False),
+      ]),
+    ])
+    self.sla.update_buttons(self.tracker.release_toggle)
+    assert self.sla._get_button_release(req_plus=True, req_minus=False)
+    assert self.sla._get_button_release(req_plus=False, req_minus=True)
+
+  def test_no_false_positive_same_toggle(self) -> None:
+    self.sla.update_buttons(self.tracker.release_toggle)
+    self.sla.update_buttons(self.tracker.release_toggle)
+    assert not self.sla._get_button_release(req_plus=True, req_minus=False)
+    assert not self.sla._get_button_release(req_plus=False, req_minus=True)
+
+  def test_button_confirm_expires(self) -> None:
+    self._run_ctrl_frames([
+      self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=True)]),
+      self._make_cs([ButtonEvent(type=ButtonType.accelCruise, pressed=False)]),
+    ])
+    self.sla.update_buttons(self.tracker.release_toggle)
+    time.sleep(CRUISE_BUTTON_CONFIRM_HOLD + 0.1)
+    assert not self.sla._get_button_release(req_plus=True, req_minus=False)

@@ -151,7 +151,6 @@ class SpeedLimitAssist:
     self._release_toggle_prev = release_toggle
     if not released:
       return
-
     now = time.monotonic()
     if any((released >> b) & 1 for b in CRUISE_BUTTONS_PLUS):
       self._plus_hold = max(self._plus_hold, now + CRUISE_BUTTON_CONFIRM_HOLD)
