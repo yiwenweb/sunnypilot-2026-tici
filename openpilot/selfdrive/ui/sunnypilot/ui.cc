@@ -24,12 +24,12 @@ void UIStateSP::updateStatus() {
 
 UIStateSP::UIStateSP(QObject *parent) : UIState(parent) {
   sm = std::make_unique<SubMaster>(std::vector<const char*>{
-    "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState",
+    "modelV2", "controlsState", "extrinsicsCalibration", "radarState", "deviceState",
     "pandaStates", "carParams", "driverMonitoringState", "carState", "driverStateV2",
     "wideRoadCameraState", "managerState", "selfdriveState", "longitudinalPlan",
     "modelManagerSP", "selfdriveStateSP", "longitudinalPlanSP", "backupManagerSP",
-    "carControl", "gpsLocationExternal", "gpsLocation", "liveTorqueParameters",
-    "carStateSP", "liveParameters", "liveMapDataSP", "carParamsSP", "carOutput"
+    "carControl", "gpsLocationExternal", "gpsLocation", "lateralTorqueParameters",
+    "carStateSP", "vehicleParameters", "liveMapDataSP", "carParamsSP", "carOutput"
   });
 
   // update timer
