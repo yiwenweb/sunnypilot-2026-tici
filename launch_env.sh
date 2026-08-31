@@ -20,3 +20,8 @@ if [ -z "$AGNOS_VERSION" ]; then
 fi
 
 export STAGING_ROOT="/data/safe_staging"
+
+# Qt UI needs Wayland connection to the weston compositor
+export XDG_RUNTIME_DIR="/var/tmp/weston"
+export WAYLAND_DISPLAY="wayland-0"
+export QT_QPA_PLATFORM="wayland-egl"
