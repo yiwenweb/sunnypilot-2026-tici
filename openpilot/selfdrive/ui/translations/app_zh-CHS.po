@@ -161,6 +161,10 @@ msgstr "关闭"
 msgid "Current Version"
 msgstr "当前版本"
 
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "Cruise"
+msgstr "巡航"
+
 #: openpilot/selfdrive/ui/layouts/settings/software.py
 msgid "DOWNLOAD"
 msgstr "下载"
@@ -196,6 +200,10 @@ msgstr "脱离以重启"
 #: openpilot/selfdrive/ui/layouts/settings/device.py
 msgid "Disengage to Reset Calibration"
 msgstr "脱离以重置校准"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "Display"
+msgstr "显示"
 
 #: openpilot/selfdrive/ui/layouts/settings/toggles.py
 msgid "Display speed in km/h instead of mph."
@@ -402,6 +410,10 @@ msgstr "最大"
 msgid "Maximize your training data uploads to improve openpilot's driving models."
 msgstr "最大化上传训练数据，以改进 openpilot 的驾驶模型。"
 
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "Models"
+msgstr "模型"
+
 #: openpilot/selfdrive/ui/layouts/settings/device.py
 msgid "N/A"
 msgstr "无"
@@ -425,6 +437,10 @@ msgstr "暂无发行说明。"
 #: openpilot/selfdrive/ui/layouts/sidebar.py
 msgid "OFFLINE"
 msgstr "离线"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "OSM"
+msgstr "离线地图"
 
 #: openpilot/selfdrive/ui/layouts/sidebar.py
 #: system/ui/widgets/confirm_dialog.py
@@ -629,6 +645,10 @@ msgstr "软件"
 msgid "Standard"
 msgstr "标准"
 
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "Steering"
+msgstr "转向"
+
 #: openpilot/selfdrive/ui/onroad/alert_renderer.py
 msgid "System Unresponsive"
 msgstr "系统无响应"
@@ -652,6 +672,10 @@ msgstr "网络共享密码"
 #: openpilot/selfdrive/ui/layouts/settings/settings.py
 msgid "Toggles"
 msgstr "切换"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "Trips"
+msgstr "行程"
 
 #: openpilot/selfdrive/ui/layouts/settings/developer.py
 msgid "UI Debug Mode"
@@ -696,6 +720,14 @@ msgstr "车辆"
 #: openpilot/selfdrive/ui/layouts/settings/device.py
 msgid "VIEW"
 msgstr "查看"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "Vehicle"
+msgstr "车辆"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "Visuals"
+msgstr "视觉"
 
 #: openpilot/selfdrive/ui/onroad/alert_renderer.py
 msgid "Waiting to start"
@@ -796,6 +828,10 @@ msgstr "现在"
 #: openpilot/selfdrive/ui/layouts/settings/device.py
 msgid "right"
 msgstr "右"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/settings.py
+msgid "sunnylink"
+msgstr "Sunnylink"
 
 #: openpilot/selfdrive/ui/layouts/settings/developer.py
 msgid "sunnypilot Longitudinal Control (Alpha)"
