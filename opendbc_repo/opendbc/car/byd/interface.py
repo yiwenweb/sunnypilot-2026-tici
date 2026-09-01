@@ -75,7 +75,8 @@ class CarInterface(CarInterfaceBase):
             # 2026版框架会自动从CarSpecs填充 mass/wheelbase/steerRatio/centerToFront，无需手动设置
             ret.minSteerSpeed = 0
             ret.autoResumeSng = True
-            ret.startingState = True
+            # NOTE: startingState/startAccel/stoppingDecelRate/vEgoStarting/vEgoStopping
+            # 在2026版CarParams中已移入 deprecated group，顶层不可再赋值，已删除。
             
             # 驾驶风格绑定（读取sunnypilot的LongitudinalPersonality参数）
             # 0=激进, 1=标准, 2=舒适
@@ -86,40 +87,17 @@ class CarInterface(CarInterfaceBase):
                 personality = 1  # 默认标准
             
             if personality == 0:  # 激进
-                ret.startAccel = 1.0
                 ret.stopAccel = -0.7
                 ret.longitudinalActuatorDelay = 0.4
                 ret.longitudinalTuning.kiV = [0.4]
             elif personality == 2:  # 舒适
-                ret.startAccel = 0.6
                 ret.stopAccel = -0.4
                 ret.longitudinalActuatorDelay = 0.6
                 ret.longitudinalTuning.kiV = [0.25]
             else:  # 标准（默认）
-                ret.startAccel = 0.8
                 ret.stopAccel = -0.5
                 ret.longitudinalActuatorDelay = 0.5
                 ret.longitudinalTuning.kiV = [0.3]
-            
-            # 跟车距离档位（读取UI设置，影响stoppingDecelRate）
-            # 1=近档2.5s, 2=中档3.5s, 3=远档4.5s(默认), 4=超远档6.0s
-            # 通过调整stoppingDecelRate影响跟车距离（值越小距离越远）
-            try:
-                from opendbc.car.common.params import Params
-                follow_distance = Params().get_int("BydFollowDistance")
-                if follow_distance == 1:
-                    ret.stoppingDecelRate = 0.8  # 近档：更激进的减速
-                elif follow_distance == 2:
-                    ret.stoppingDecelRate = 0.6  # 中档
-                elif follow_distance == 4:
-                    ret.stoppingDecelRate = 0.3  # 超远档：更保守
-                else:  # 3=远档（默认）
-                    ret.stoppingDecelRate = 0.5
-            except:
-                ret.stoppingDecelRate = 0.5  # 默认值
-            
-            ret.vEgoStarting = 0.2 * CV.KPH_TO_MS
-            ret.vEgoStopping = 0.1 * CV.KPH_TO_MS
         else:
             ret.dashcamOnly = True
 
