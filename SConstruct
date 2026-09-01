@@ -32,6 +32,8 @@ submodule_python_paths = [
   Dir("#msgq_repo").abspath,
   Dir("#opendbc_repo").abspath,
   Dir("#rednose_repo").abspath,
+  Dir("#stub_pkgs").abspath,
+  Dir("#third_party/acados").abspath,  # exposes acados_template as top-level import
   Dir("#teleoprtc_repo").abspath,
   Dir("#tinygrad_repo").abspath,
 ]
@@ -55,9 +57,21 @@ assert arch in [
   "Darwin",       # macOS arm64 (x86 not supported)
 ]
 
-pkg_names = ['acados', 'capnproto', 'eigen', 'ffmpeg', 'json11', 'ncurses', 'zeromq', 'zstd']
+pkg_names = ['capnproto', 'eigen', 'ffmpeg', 'json11', 'ncurses', 'zeromq', 'zstd']
 pkgs = [importlib.import_module(name) for name in pkg_names]
-acados = pkgs[pkg_names.index('acados')]
+
+# acados is optional: only available when third_party/acados/ exists.
+# stub_pkgs/acados/__init__.py points at third_party/acados/{larch64,x86_64,Darwin}/lib.
+try:
+  import acados
+  _acados_have_lib = os.path.isdir(acados.LIB_DIR) and any(
+    f.startswith('libacados') for f in os.listdir(acados.LIB_DIR)
+  ) if os.path.isdir(acados.LIB_DIR) else False
+  if not _acados_have_lib:
+    acados = None
+except ImportError:
+  acados = None
+
 ffmpeg = pkgs[pkg_names.index('ffmpeg')]
 # Shared package ships .so/.dylib; older device venvs still have static .a only.
 # Keep static link deps (x264/z/va/drm) when the installed package is static so
