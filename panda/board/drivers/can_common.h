@@ -17,7 +17,16 @@ bool can_loopback = false;
   extern can_ring can_##x; \
   can_ring can_##x = { .w_ptr = 0, .r_ptr = 0, .fifo_size = (size), .elems = (CANPacket_t *)&(elems_##x) };
 
+// dos (STM32F4) only has 256KB SRAM and, unlike H7, its CAN rings live in plain
+// .bss (no AXISRAM/ITCMRAM). A 4096-packet rx ring is 64KB by itself and pushes
+// .bss past the 128KB stack top (_estack=0x2001FFFC), causing a startup hard
+// fault (USB never enumerates). 2048 packets = ~1s of buffering at full 3-bus
+// classic-CAN load, which is ample since the SoM drains at 100Hz. H7 keeps 4096.
+#ifdef STM32F4
+#define CAN_RX_BUFFER_SIZE 2048U
+#else
 #define CAN_RX_BUFFER_SIZE 4096U
+#endif
 #define CAN_TX_BUFFER_SIZE 416U
 
 #ifdef STM32H7

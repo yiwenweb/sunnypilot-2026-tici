@@ -5,6 +5,8 @@
 #include "board/crc.h"
 #ifdef STM32H7
 #include "board/stm32h7/lladc_declarations.h"
+#elif defined(STM32F4)
+#include "board/stm32f4/lladc_declarations.h"
 #endif
 
 // ******************** bootkick ********************
@@ -103,8 +105,20 @@ void fan_init(void);
 // Call this at FAN_TICK_FREQ
 void fan_tick(void);
 
-// ******************** fdcan ********************
-#ifdef STM32H7
+// ******************** fdcan / bxcan ********************
+#ifdef STM32F4
+
+// STM32F4 (dos) uses bxCAN instead of FDCAN
+#define CAN_IRQS_ARRAY_SIZE 3
+extern CAN_TypeDef *cans[PANDA_CAN_CNT];
+extern uint8_t can_irq_number[CAN_IRQS_ARRAY_SIZE][CAN_IRQS_ARRAY_SIZE];
+
+void can_clear_send(CAN_TypeDef *CANx, uint8_t can_number);
+void update_can_health_pkt(uint8_t can_number, uint32_t ir_reg);
+
+void can_rx(uint8_t can_number);
+
+#elif defined(STM32H7)
 
 typedef struct {
   volatile uint32_t header[2];
@@ -119,6 +133,10 @@ void can_clear_send(FDCAN_GlobalTypeDef *FDCANx, uint8_t can_number);
 void update_can_health_pkt(uint8_t can_number, uint32_t ir_reg);
 
 void can_rx(uint8_t can_number);
+
+#endif // STM32F4 / STM32H7
+
+#if defined(STM32F4) || defined(STM32H7)
 
 // ******************** harness ********************
 
@@ -186,7 +204,7 @@ void handle_interrupt(IRQn_Type irq_type);
 void interrupt_timer_handler(void);
 void init_interrupts(bool check_rate_limit);
 
-#endif // STM32H7
+#endif // STM32F4 || STM32H7
 
 // ******************** registers ********************
 
@@ -235,7 +253,7 @@ void spi_rx_done(void);
 void spi_tx_done(bool reset);
 
 // ******************** uart ********************
-#ifdef STM32H7
+#if defined(STM32F4) || defined(STM32H7)
 
 // ***************************** Definitions *****************************
 #define FIFO_SIZE_INT 0x400U
@@ -275,7 +293,7 @@ static void puth4(unsigned int i);
 static void hexdump(const void *a, int l);
 #endif
 
-#endif // STM32H7
+#endif // STM32F4 || STM32H7
 
 // ******************** usb ********************
 

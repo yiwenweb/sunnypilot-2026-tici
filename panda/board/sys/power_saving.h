@@ -52,6 +52,14 @@ void set_power_save_state(bool enable) {
   }
 }
 
+#ifdef STM32F4
+// STM32F4 (dos) has no supported deep-sleep path: the H7 stop-mode sequence below
+// relies on H7-only peripherals (EXTI->IMR1/PR1, ADC_CR_DEEPPWD, PWR->CPUCR,
+// PWR_CR1_SVOS, RCC->AHB2LPENR, GPIOE/F/G). Only cuatro ever calls this at
+// runtime, so a stub keeps main.c compiling without changing behavior.
+static void enter_stop_mode(void) {
+}
+#else
 static void enter_stop_mode(void) {
   // set all GPIO to analog mode to reduce power, analog mode also disables pull resistors
   register_set(&(GPIOA->MODER), 0xFFFFFFFFU, 0xFFFFFFFFU);
@@ -74,12 +82,6 @@ static void enter_stop_mode(void) {
   ADC1->CR |= ADC_CR_DEEPPWD;
   ADC2->CR &= ~(ADC_CR_ADEN);
   ADC2->CR |= ADC_CR_DEEPPWD;
-
-  // disable DTS
-  register_clear_bits(&(DTS->CFGR1), DTS_CFGR1_TS1_START);
-  register_clear_bits(&(DTS->CFGR1), DTS_CFGR1_TS1_EN);
-  register_set(&(DTS->CFGR1), 0U, (DTS_CFGR1_TS1_SMP_TIME_Msk | DTS_CFGR1_REFCLK_SEL_Msk | DTS_CFGR1_Q_MEAS_OPT_Msk | DTS_CFGR1_HSREF_CLK_DIV_Msk | DTS_CFGR1_TS1_INTRIG_SEL_Msk));
-  RCC->APB4ENR &= ~(RCC_APB4ENR_DTSEN);
 
   // disable HSI48: 48 MHz USB clock
   register_clear_bits(&(RCC->CR), RCC_CR_HSI48ON);
@@ -153,3 +155,4 @@ static void enter_stop_mode(void) {
 
   NVIC_SystemReset();
 }
+#endif // STM32F4
