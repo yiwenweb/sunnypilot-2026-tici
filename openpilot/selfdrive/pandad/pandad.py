@@ -106,8 +106,10 @@ def main() -> None:
       cloudlog.event("pandad.flash_and_connect", count=count)
       if (count % 2) == 0:
         HARDWARE.reset_internal_panda()
+        Panda.wait_for_panda(None, timeout=10)
       else:
         HARDWARE.recover_internal_panda()
+        Panda.wait_for_dfu(None, timeout=10)
       count += 1
 
       # Flash all Pandas in DFU mode
