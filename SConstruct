@@ -177,6 +177,7 @@ env = Environment(
     "#openpilot/selfdrive/pandad",
     "#rednose_repo/rednose/helpers",
     [x.LIB_DIR for x in pkgs],
+    [acados.LIB_DIR] if acados is not None else [],
   ],
   RPATH=[ffmpeg.LIB_DIR] if ffmpeg_shared else [],
   CYTHONCFILESUFFIX=".cpp",
