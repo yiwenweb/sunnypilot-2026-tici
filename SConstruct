@@ -87,11 +87,14 @@ if not ffmpeg_shared:
   ffmpeg_libs += ['x264', 'z']
   if arch != "Darwin":
     ffmpeg_libs += ['va', 'va-drm', 'drm']
-acados_include_dirs = [
-  acados.INCLUDE_DIR,
-  os.path.join(acados.INCLUDE_DIR, "blasfeo", "include"),
-  os.path.join(acados.INCLUDE_DIR, "hpipm", "include"),
-]
+if acados is not None:
+  acados_include_dirs = [
+    acados.INCLUDE_DIR,
+    os.path.join(acados.INCLUDE_DIR, "blasfeo", "include"),
+    os.path.join(acados.INCLUDE_DIR, "hpipm", "include"),
+  ]
+else:
+  acados_include_dirs = []
 
 
 # ***** enforce a whitelist of system libraries *****
@@ -163,6 +166,7 @@ env = Environment(
     "#rednose_repo",         # #include "rednose/..."
     "#rednose_repo/rednose", # #include "logger/..." (rednose package root)
     "#openpilot/cereal/gen/cpp",
+    "#third_party/linux/include",  # vendored linux/ion.h, msm_ion.h etc. for larch64
     acados_include_dirs,
     [x.INCLUDE_DIR for x in pkgs],
     "#",
