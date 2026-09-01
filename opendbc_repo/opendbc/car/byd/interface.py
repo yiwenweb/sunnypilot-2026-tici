@@ -67,8 +67,8 @@ class CarInterface(CarInterfaceBase):
         ret.openpilotLongitudinalControl = alpha_long and ret.alphaLongitudinalAvailable
         ret.pcmCruise = True  # Always follow PCM cruise state for activation/speed display, even when OP handles longitudinal accel
 
-        ret.longitudinalTuning.kpBP, ret.longitudinalTuning.kiBP = [[0.], [0.]]
-        ret.longitudinalTuning.kpV, ret.longitudinalTuning.kiV = [[1.5], [0.3]]
+        ret.longitudinalTuning.kiBP = [0.]
+        ret.longitudinalTuning.kiV = [1.5]
 
         if candidate == CAR.BYD_TANG_DM:
             # ret.steerRatio = 19.0 已在values.py的CarSpecs中定义（门总实测: liveParameters学习锁定19.0）
@@ -89,19 +89,16 @@ class CarInterface(CarInterfaceBase):
                 ret.startAccel = 1.0
                 ret.stopAccel = -0.7
                 ret.longitudinalActuatorDelay = 0.4
-                ret.longitudinalTuning.kpV = [1.8]
                 ret.longitudinalTuning.kiV = [0.4]
             elif personality == 2:  # 舒适
                 ret.startAccel = 0.6
                 ret.stopAccel = -0.4
                 ret.longitudinalActuatorDelay = 0.6
-                ret.longitudinalTuning.kpV = [1.2]
                 ret.longitudinalTuning.kiV = [0.25]
             else:  # 标准（默认）
                 ret.startAccel = 0.8
                 ret.stopAccel = -0.5
                 ret.longitudinalActuatorDelay = 0.5
-                ret.longitudinalTuning.kpV = [1.5]
                 ret.longitudinalTuning.kiV = [0.3]
             
             # 跟车距离档位（读取UI设置，影响stoppingDecelRate）

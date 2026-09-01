@@ -347,6 +347,7 @@ class CanBus:
 
 
 FW_QUERY_CONFIG = FwQueryConfig(
+  fw_version_regex=br"[\x00-\xff]+",
   requests=[
     Request(
       [StdQueries.MANUFACTURER_SOFTWARE_VERSION_REQUEST],

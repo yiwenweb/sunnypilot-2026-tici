@@ -270,10 +270,14 @@ def prune_cache_dir(target=None, source=None, env=None):
 
 # ********** start building stuff **********
 
+# Build vendored json11 (stub_pkgs/json11) so `-ljson11` resolves on C3
+SConscript(['stub_pkgs/json11/SConscript'])
+Import('libjson11')
+
 # Build common module
 SConscript(['openpilot/common/SConscript'])
 Import('_common')
-common = [_common, 'json11', 'zmq']
+common = [_common, libjson11, 'zmq']
 Export('common')
 
 # Build messaging (cereal + msgq + socketmaster + their dependencies)
