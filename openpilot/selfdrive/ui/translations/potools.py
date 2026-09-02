@@ -190,6 +190,22 @@ def write_po(path: str | Path, header: POEntry | None, entries: list[POEntry]) -
 
 # ──── String extraction (replaces xgettext) ────
 
+def _fold_const(node) -> str | None:
+  """常量折叠：把 tr("A" + "B") 这类跨行拼接还原为单个字符串。
+
+  Python 的 AST 不做常量折叠，拼接表达式在语法树里是 BinOp 而非 Constant，
+  因此只判断 ast.Constant 会漏掉源码中所有跨行书写的长文本。
+  """
+  if isinstance(node, ast.Constant):
+    return node.value if isinstance(node.value, str) else None
+  if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+    left = _fold_const(node.left)
+    right = _fold_const(node.right)
+    if isinstance(left, str) and isinstance(right, str):
+      return left + right
+  return None
+
+
 def extract_strings(files: list[str], basedir: str) -> list[POEntry]:
   """Extract tr/trn/tr_noop calls from Python source files."""
   seen: dict[str, POEntry] = {}
@@ -222,9 +238,11 @@ def extract_strings(files: list[str], basedir: str) -> list[POEntry]:
       is_flagged = name in ('tr', 'trn')
 
       if name in ('tr', 'tr_noop'):
-        if not node.args or not isinstance(node.args[0], ast.Constant) or not isinstance(node.args[0].value, str):
+        if not node.args:
           continue
-        msgid = node.args[0].value
+        msgid = _fold_const(node.args[0])
+        if not isinstance(msgid, str) or not msgid:
+          continue
         if msgid in seen:
           if ref not in seen[msgid].source_refs:
             seen[msgid].source_refs.append(ref)
@@ -235,12 +253,10 @@ def extract_strings(files: list[str], basedir: str) -> list[POEntry]:
       elif name == 'trn':
         if len(node.args) < 2:
           continue
-        a1, a2 = node.args[0], node.args[1]
-        if not (isinstance(a1, ast.Constant) and isinstance(a1.value, str)):
+        msgid = _fold_const(node.args[0])
+        msgid_plural = _fold_const(node.args[1])
+        if not isinstance(msgid, str) or not isinstance(msgid_plural, str) or not msgid:
           continue
-        if not (isinstance(a2, ast.Constant) and isinstance(a2.value, str)):
-          continue
-        msgid, msgid_plural = a1.value, a2.value
         if msgid in seen:
           if ref not in seen[msgid].source_refs:
             seen[msgid].source_refs.append(ref)

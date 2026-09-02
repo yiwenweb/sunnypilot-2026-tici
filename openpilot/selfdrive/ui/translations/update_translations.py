@@ -11,10 +11,14 @@ POT_FILE = os.path.join(str(TRANSLATIONS_DIR), "app.pot")
 
 def update_translations():
   files = []
+  # NOTE: sunnypilot 的界面代码位于 selfdrive/ui/sunnypilot/ 下，
+  # 不在 widgets/layouts/onroad 三个目录中，必须单独扫描，
+  # 否则 MADS、变道、扭矩、sunnylink 等面板的字符串全部无法进入模板。
   for root, _, filenames in chain(os.walk(SYSTEM_UI_DIR),
                                   os.walk(os.path.join(str(UI_DIR), "widgets")),
                                   os.walk(os.path.join(str(UI_DIR), "layouts")),
-                                  os.walk(os.path.join(str(UI_DIR), "onroad"))):
+                                  os.walk(os.path.join(str(UI_DIR), "onroad")),
+                                  os.walk(os.path.join(str(UI_DIR), "sunnypilot"))):
     for filename in filenames:
       if filename.endswith(".py"):
         files.append(os.path.relpath(os.path.join(root, filename), BASEDIR))
