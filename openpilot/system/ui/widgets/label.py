@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Union
 import pyray as rl
 
-from openpilot.system.ui.lib.application import gui_app, FontWeight, DEFAULT_TEXT_SIZE, DEFAULT_TEXT_COLOR, FONT_SCALE
+from openpilot.system.ui.lib.application import gui_app, FontWeight, DEFAULT_TEXT_SIZE, DEFAULT_TEXT_COLOR, get_font_scale
 from openpilot.system.ui.widgets import Widget
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.lib.utils import GuiStyleContext
@@ -86,8 +86,8 @@ def gui_text_box(
 ):
   styles = [
     (rl.GuiControl.DEFAULT, rl.GuiControlProperty.TEXT_COLOR_NORMAL, rl.color_to_int(color)),
-    (rl.GuiControl.DEFAULT, rl.GuiDefaultProperty.TEXT_SIZE, round(font_size * FONT_SCALE)),
-    (rl.GuiControl.DEFAULT, rl.GuiDefaultProperty.TEXT_LINE_SPACING, round(font_size * FONT_SCALE * line_scale)),
+    (rl.GuiControl.DEFAULT, rl.GuiDefaultProperty.TEXT_SIZE, round(font_size * get_font_scale())),
+    (rl.GuiControl.DEFAULT, rl.GuiDefaultProperty.TEXT_LINE_SPACING, round(font_size * get_font_scale() * line_scale)),
     (rl.GuiControl.DEFAULT, rl.GuiControlProperty.TEXT_ALIGNMENT, alignment),
     (rl.GuiControl.DEFAULT, rl.GuiDefaultProperty.TEXT_ALIGNMENT_VERTICAL, alignment_vertical),
     (rl.GuiControl.DEFAULT, rl.GuiDefaultProperty.TEXT_WRAP_MODE, rl.GuiTextWrapMode.TEXT_WRAP_WORD)
@@ -182,10 +182,10 @@ class Label(Widget):
 
     text_size = self._text_size[0] if self._text_size else rl.Vector2(0.0, 0.0)
     if self._text_alignment_vertical == rl.GuiTextAlignmentVertical.TEXT_ALIGN_MIDDLE:
-      total_text_height = sum(ts.y for ts in self._text_size) or self._font_size * FONT_SCALE
+      total_text_height = sum(ts.y for ts in self._text_size) or self._font_size * get_font_scale()
       text_pos = rl.Vector2(self._rect.x, (self._rect.y + (self._rect.height - total_text_height) // 2))
     elif self._text_alignment_vertical == rl.GuiTextAlignmentVertical.TEXT_ALIGN_BOTTOM:
-      total_text_height = sum(ts.y for ts in self._text_size) or self._font_size * FONT_SCALE
+      total_text_height = sum(ts.y for ts in self._text_size) or self._font_size * get_font_scale()
       text_pos = rl.Vector2(self._rect.x, self._rect.y + self._rect.height - total_text_height)
     else:
       text_pos = rl.Vector2(self._rect.x, self._rect.y)
@@ -216,7 +216,7 @@ class Label(Widget):
         line_pos.x += self._rect.width - text_size.x - self._text_padding
 
       rl.draw_text_ex(self._font, text, line_pos, self._font_size, 0, self._text_color)
-      text_pos.y += (text_size.y or self._font_size * FONT_SCALE) * self._line_scale
+      text_pos.y += (text_size.y or self._font_size * get_font_scale()) * self._line_scale
 
 
 class UnifiedLabel(Widget):
@@ -420,7 +420,7 @@ class UnifiedLabel(Widget):
     for line in self._cached_wrapped_lines:
       # Empty lines should still have height (use font size as line height)
       if not line:
-        size = rl.Vector2(0, self._font_size * FONT_SCALE)
+        size = rl.Vector2(0, self._font_size * get_font_scale())
       else:
         size = measure_text_cached(self._font, line, self._font_size, self._spacing_pixels)
 

@@ -92,6 +92,53 @@ DEFAULT_TEXT_COLOR = rl.Color(255, 255, 255, int(255 * 0.9))
 # The real scales for the fonts below range from 1.212 to 1.266
 FONT_SCALE = 1.242 if BIG_UI else 1.16
 
+# User-configurable font size multiplier, stored as a percentage in the "UiFontSize" param.
+# Kept in a module-level cache so per-frame text drawing never hits Params directly.
+_USER_FONT_SCALE: float | None = None
+_FONT_SCALE_MIN = 0.5
+_FONT_SCALE_MAX = 2.0
+
+
+def _clamp_user_font_scale(scale: float) -> float:
+  return max(_FONT_SCALE_MIN, min(_FONT_SCALE_MAX, scale))
+
+
+def get_user_font_scale() -> float:
+  """Return the user font multiplier (1.0 = default). Read from Params once, then cached."""
+  global _USER_FONT_SCALE
+  if _USER_FONT_SCALE is None:
+    scale = 1.0
+    try:
+      from openpilot.common.params import Params
+      scale = float(Params().get("UiFontSize", return_default=True)) / 100.0
+    except Exception:
+      # Params key not registered yet (C++ recompile pending) or unreadable -> default
+      scale = 1.0
+    _USER_FONT_SCALE = _clamp_user_font_scale(scale)
+  return _USER_FONT_SCALE
+
+
+def set_user_font_scale_preview(percent: int | float) -> None:
+  """Apply a font multiplier in memory only (preview during the 5s confirm window). Not persisted."""
+  global _USER_FONT_SCALE
+  _USER_FONT_SCALE = _clamp_user_font_scale(float(percent) / 100.0)
+
+
+def set_user_font_scale(percent: int | float) -> None:
+  """Persist the user font multiplier to Params and apply it immediately."""
+  set_user_font_scale_preview(percent)
+  try:
+    from openpilot.common.params import Params
+    Params().put("UiFontSize", str(int(percent)))
+  except Exception:
+    # Key not registered in C++ yet -> preview still applies for this session
+    pass
+
+
+def get_font_scale() -> float:
+  """Total effective font scale: base device compensation * user multiplier."""
+  return FONT_SCALE * get_user_font_scale()
+
 ASSETS_DIR = files("openpilot.selfdrive").joinpath("assets")
 FONT_DIR = ASSETS_DIR.joinpath("fonts")
 EXTRA_FONT_CHARS = "–‑✓×°§•X⚙✕◀▶✔⌫⇧␣○●↳çêüñ–‑✓×°§•€£¥"
@@ -755,7 +802,7 @@ class GuiApplication(GuiApplicationExt):
 
     def _draw_text_ex_scaled(font, text, position, font_size, spacing, tint):
       font = font_fallback(font)
-      return rl._orig_draw_text_ex(font, text, position, font_size * FONT_SCALE, spacing, tint)
+      return rl._orig_draw_text_ex(font, text, position, font_size * get_font_scale(), spacing, tint)
 
     rl.draw_text_ex = _draw_text_ex_scaled
 

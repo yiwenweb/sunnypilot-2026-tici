@@ -117,6 +117,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TorqueBar", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"TrainingVersion", {PERSISTENT, STRING}},
     {"UbloxAvailable", {PERSISTENT, BOOL}},
+    {"UiFontSize", {PERSISTENT | BACKUP, STRING, "100"}},
     {"UpdateAvailable", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"UpdateFailedCount", {CLEAR_ON_MANAGER_START, INT}},
     {"UpdaterAvailableBranches", {PERSISTENT, STRING}},
