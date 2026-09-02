@@ -869,5 +869,5 @@ msgstr "✓ ABONE"
 
 #: openpilot/selfdrive/ui/widgets/setup.py
 msgid "🔥 Firehose Mode 🔥"
-msgstr "🔥 Firehose Modu 🔥"
+msgstr "Firehose Modu"
 

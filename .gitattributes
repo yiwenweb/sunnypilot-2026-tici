@@ -12,3 +12,10 @@
 
 openpilot/selfdrive/car/tests/test_models_segs.txt filter=lfs diff=lfs merge=lfs -text
 openpilot/common/hardware/comma/updater filter=lfs diff=lfs merge=lfs -text
+
+# 以下为本仓库本地修改的文件，改为普通文件直接提交（无需 gitlab LFS 写权限）
+openpilot/selfdrive/assets/fonts/NotoSansCJKsc-Regular.otf !filter !diff !merge
+openpilot/selfdrive/assets/fonts/NotoSansCJKjp-Regular.otf !filter !diff !merge
+openpilot/selfdrive/assets/fonts/NotoSansCJKkr-Regular.otf !filter !diff !merge
+openpilot/selfdrive/assets/fonts/NotoSansCJKtc-Regular.otf !filter !diff !merge
+docs/assets/comma-logo.png !filter !diff !merge
