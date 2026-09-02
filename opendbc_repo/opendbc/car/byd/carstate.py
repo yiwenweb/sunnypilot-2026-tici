@@ -187,8 +187,12 @@ class CarState(CarStateBase, MadsCarState):
         #    不要用 steeringPressed(控制用)兼任 (见笔记31章)。滤波帧数一并回退到 5。
         ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > 59, 5)
 
-        ret.lkasPrepared = bool(self.lkas_prepared)
-        ret.lkasPreparedFrames = self.lkas_prepared_frames
+        # [2026 port fix] lkasPrepared/lkasPreparedFrames 是 0.10.1 自加的 CarState capnp 字段,
+        # 2026 schema 已无此成员, 赋值会让 card 直接 AttributeError 崩溃 -> selfdrived 收不到
+        # carState -> canValid=False -> UI 误报 "Unknown Vehicle Variant"。内部状态 self.lkas_prepared
+        # 保留, LOCK 握手逻辑(carcontroller)仍使用。
+        # ret.lkasPrepared = bool(self.lkas_prepared)
+        # ret.lkasPreparedFrames = self.lkas_prepared_frames
 
         ret.parkingBrake = (cp.vl["EPB"]["EPB_ActiveFlag"] == 1)
 
