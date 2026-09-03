@@ -20,3 +20,27 @@ if [ -z "$AGNOS_VERSION" ]; then
 fi
 
 export STAGING_ROOT="/data/safe_staging"
+
+# --- tici (comma three) specifics -------------------------------------------
+# The weston unit keeps its socket in /var/tmp/weston, not in the default
+# /run/user/<uid>. raylib resolves $XDG_RUNTIME_DIR/wayland-0, so without this
+# the UI dies with "Failed to create a Wayland display / Failed to initialize EGL".
+if [ -d /var/tmp/weston ]; then
+  export XDG_RUNTIME_DIR="/var/tmp/weston"
+  # weston runs as root and creates the socket 0755, which leaves the comma user
+  # (i.e. openpilot) unable to connect to it.
+  if [ -S /var/tmp/weston/wayland-0 ]; then
+    sudo chmod 777 /var/tmp/weston/wayland-0 2>/dev/null || true
+  fi
+fi
+
+# core_ctl hotplugs the big cores (4-7) off while the device is idle. Any daemon
+# pinned to one of them then dies on sched_setaffinity(EINVAL) - card, controlsd,
+# modeld, dmonitoringmodeld ... all showed up as "process not running".
+# set_core_affinity() now degrades gracefully, but bring them back up anyway so
+# the real-time daemons actually get their core.
+for cpu in 4 5 6 7; do
+  if [ -e "/sys/devices/system/cpu/cpu${cpu}/online" ]; then
+    echo 1 | sudo tee "/sys/devices/system/cpu/cpu${cpu}/online" > /dev/null 2>&1 || true
+  fi
+done
