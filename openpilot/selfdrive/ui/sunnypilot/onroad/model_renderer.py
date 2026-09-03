@@ -11,6 +11,11 @@ from openpilot.selfdrive.ui.sunnypilot.onroad.rainbow_path import RainbowPath
 from openpilot.selfdrive.ui.sunnypilot.ui_state import MADSState
 from openpilot.system.ui.lib.application import gui_app
 
+LANE_LINE_COLORS_SP = {
+  UIStatus.LAT_ONLY: rl.Color(0, 255, 64, 255),
+  UIStatus.LONG_ONLY: rl.Color(0, 255, 64, 255),
+}
+
 
 class ModelRendererSP:
   def __init__(self):

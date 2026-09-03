@@ -7,12 +7,12 @@ from dataclasses import dataclass, field
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.params import Params
 from openpilot.selfdrive.locationd.calibrationd import HEIGHT_INIT
-from openpilot.selfdrive.ui.ui_state import ui_state
+from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.shader_polygon import draw_polygon, Gradient
 from openpilot.system.ui.widgets import Widget
 
-from openpilot.selfdrive.ui.sunnypilot.onroad.model_renderer import ChevronMetrics, ModelRendererSP
+from openpilot.selfdrive.ui.sunnypilot.onroad.model_renderer import ChevronMetrics, ModelRendererSP, LANE_LINE_COLORS_SP
 
 CLIP_MARGIN = 500
 MIN_DRAW_DISTANCE = 10.0
@@ -29,6 +29,13 @@ NO_THROTTLE_COLORS = [
   rl.Color(242, 242, 242, 89),  # HSLF(112/360, 0.0, 0.95, 0.35)
   rl.Color(242, 242, 242, 0),   # HSLF(112/360, 0.0, 0.95, 0.0)
 ]
+
+LANE_LINE_COLORS = {
+  UIStatus.DISENGAGED: rl.Color(200, 200, 200, 255),
+  UIStatus.OVERRIDE: rl.Color(255, 255, 255, 255),
+  UIStatus.ENGAGED: rl.Color(0, 255, 64, 255),
+  **LANE_LINE_COLORS_SP,
+}
 
 
 @dataclass
@@ -132,8 +139,9 @@ class ModelRenderer(Widget, ChevronMetrics, ModelRendererSP):
         self._update_leads(radar_state, path_x_array)
       self._transform_dirty = False
 
-    # Draw elements
-    self._draw_lane_lines()
+    # Draw elements (hide when disengaged)
+    if ui_state.status != UIStatus.DISENGAGED:
+      self._draw_lane_lines()
     self._draw_path(sm)
 
     if render_lead_indicator and radar_state:
@@ -266,22 +274,36 @@ class ModelRenderer(Widget, ChevronMetrics, ModelRendererSP):
 
     return LeadVehicle(glow=glow, chevron=chevron, fill_alpha=int(fill_alpha))
 
+  def _get_ll_color(self, prob: float, adjacent: bool, left: bool):
+    alpha = np.clip(prob, 0.0, 0.7)
+    if adjacent:
+      if ui_state.status == UIStatus.DISENGAGED:
+        color = rl.Color(0, 0, 0, int(alpha * 255))
+      else:
+        _base_color = LANE_LINE_COLORS.get(ui_state.status, LANE_LINE_COLORS[UIStatus.DISENGAGED])
+        color = rl.Color(_base_color.r, _base_color.g, _base_color.b, int(alpha * 255))
+    else:
+      if prob < 0.25:
+        color = rl.Color(255, 115, 0, int(alpha * 255))
+      else:
+        color = rl.Color(255, 255, 255, int(alpha * 255))
+    return color
+
   def _draw_lane_lines(self):
-    """Draw lane lines and road edges"""
+    """Draw lane lines and road edges. Two closest lines should be green (lane line or road edges)."""
     for i, lane_line in enumerate(self._lane_lines):
       if lane_line.projected_points.size == 0:
         continue
 
-      alpha = np.clip(self._lane_line_probs[i], 0.0, 0.7)
-      color = rl.Color(255, 255, 255, int(alpha * 255))
+      color = self._get_ll_color(float(self._lane_line_probs[i]), i in (1, 2), i in (0, 1))
       draw_polygon(self._rect, lane_line.projected_points, color)
 
     for i, road_edge in enumerate(self._road_edges):
       if road_edge.projected_points.size == 0:
         continue
 
-      alpha = np.clip(1.0 - self._road_edge_stds[i], 0.0, 1.0)
-      color = rl.Color(255, 0, 0, int(alpha * 255))
+      # if closest lane lines are not confident, make road edges green
+      color = self._get_ll_color(float(1.0 - self._road_edge_stds[i]), float(self._lane_line_probs[i + 1]) < 0.25, i == 0)
       draw_polygon(self._rect, road_edge.projected_points, color)
 
   def _draw_path(self, sm):
