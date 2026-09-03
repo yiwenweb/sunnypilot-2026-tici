@@ -35,7 +35,24 @@ def drop_realtime() -> None:
 
 def set_core_affinity(cores: list[int]) -> None:
   if sys.platform == 'linux' and not PC:
-    os.sched_setaffinity(0, cores)
+    try:
+      os.sched_setaffinity(0, cores)
+    except OSError:
+      # On tici (comma three) the Qualcomm core_ctl driver hotplugs the big
+      # cores (4-7) off under low load / thermal pressure. sched_setaffinity()
+      # returns EINVAL for an offline core and used to kill the whole daemon,
+      # which surfaced as "process not running" for card, controlsd, modeld,
+      # dmonitoringmodeld, ... Degrade to whatever is online instead.
+      from openpilot.common.swaglog import cloudlog
+      available = list(os.sched_getaffinity(0))
+      fallback = [c for c in cores if c in available]
+      if fallback:
+        try:
+          os.sched_setaffinity(0, fallback)
+        except OSError:
+          cloudlog.warning(f"set_core_affinity: failed for {cores} and fallback {fallback}")
+      else:
+        cloudlog.warning(f"set_core_affinity: none of {cores} is online (available {sorted(available)}), continuing unbound")
 
 
 def config_realtime_process(cores: int | list[int], priority: int) -> None:
