@@ -747,6 +747,11 @@ class GuiApplication(GuiApplicationExt):
     if language not in self._fallback_fonts:
       chars = set(map(chr, range(32, 127))) | set(EXTRA_FONT_CHARS)
       chars.update(TRANSLATIONS_DIR.joinpath(f"app_{language}.po").read_text(encoding="utf-8"))
+      # 并入完整 CJK 基本区与扩展 A 区，确保动态中文文本（道路名称等）任意汉字字形被加载，
+      # 避免运行时缺字导致汉字显示不全。策略与 translations/regenerate_fonts.py 的
+      # collect_chars 整块收集一致；字体文件已含这些字形（见 assets/fonts/*CJK*）。
+      chars.update(chr(cp) for cp in range(0x3400, 0x4DBF + 1))   # CJK 扩展 A
+      chars.update(chr(cp) for cp in range(0x4E00, 0x9FFF + 1))   # CJK 统一表意文字
       codepoints = sorted(map(ord, chars))
       codepoint_buffer = rl.ffi.new("int[]", codepoints)
       with as_file(FONT_DIR) as fspath:
