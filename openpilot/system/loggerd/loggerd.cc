@@ -346,7 +346,9 @@ int main(int argc, char** argv) {
   if (!Hardware::PC()) {
     int ret;
     ret = util::set_core_affinity({0, 1, 2, 3});
-    assert(ret == 0);
+    if (ret != 0) {
+      LOGW("loggerd failed to set core affinity to cores 0,1,2,3: %d", ret);
+    }
     // TODO: why does this impact camerad timings?
     //ret = util::set_realtime_priority(1);
     //assert(ret == 0);
