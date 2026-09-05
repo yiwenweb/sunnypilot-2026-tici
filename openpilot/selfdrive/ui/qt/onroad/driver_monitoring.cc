@@ -28,8 +28,12 @@ DriverMonitorRenderer::DriverMonitorRenderer() : face_kpts_draw(std::size(DEFAUL
 void DriverMonitorRenderer::updateState(const UIState &s) {
   auto &sm = *(s.sm);
   const auto car_state = sm["carState"].getCarState();
-  prepared_active = car_state.getLkasPrepared();
-  prepared_frames = car_state.getLkasPreparedFrames();
+  // BYD lkasPrepared/lkasPreparedFrames are dormant: the 2026 car.capnp has no
+  // such fields (field 61 is carNotReady). Re-add the capnp field + reads when
+  // porting the BYD Tang DM adaptation.
+  (void)car_state;
+  prepared_active = false;
+  prepared_frames = 0;
 
   // Throttle the param read to once per ~2s (40 frames @ 20Hz) to avoid
   // constructing a Params object every frame, which can block/crash on onroad transition.
