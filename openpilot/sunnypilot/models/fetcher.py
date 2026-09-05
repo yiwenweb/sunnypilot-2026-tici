@@ -20,9 +20,22 @@ class ModelParser:
   """Handles parsing of model data into cereal objects"""
 
   @staticmethod
+  def _apply_mirror(url: str) -> str:
+    """Replace huggingface.co with a reachable mirror (e.g. hf-mirror.com) when set.
+
+    huggingface.co is not reachable from some networks (e.g. mainland China).
+    Set SUNNYPILOT_MODEL_MIRROR (default: hf-mirror.com) to route HF-hosted
+    model downloads through the mirror. Non-HF urls are left untouched.
+    """
+    mirror = os.environ.get("SUNNYPILOT_MODEL_MIRROR", "hf-mirror.com").strip()
+    if mirror and "huggingface.co" in url:
+      return url.replace("https://huggingface.co", f"https://{mirror}", 1)
+    return url
+
+  @staticmethod
   def _parse_download_uri(download_uri_data) -> custom.ModelManagerSP.DownloadUri:
     download_uri = custom.ModelManagerSP.DownloadUri()
-    download_uri.uri = download_uri_data.get("url")
+    download_uri.uri = ModelParser._apply_mirror(download_uri_data.get("url") or "")
     download_uri.sha256 = download_uri_data.get("sha256")
     return download_uri
 
