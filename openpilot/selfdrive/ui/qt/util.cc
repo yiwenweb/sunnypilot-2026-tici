@@ -19,7 +19,7 @@
 
 #include "openpilot/common/swaglog.h"
 #include "openpilot/common/util.h"
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 QString getVersion() {
   static QString version =  QString::fromStdString(Params().get("Version"));

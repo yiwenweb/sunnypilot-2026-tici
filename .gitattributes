@@ -19,3 +19,6 @@ openpilot/selfdrive/assets/fonts/NotoSansCJKjp-Regular.otf !filter !diff !merge
 openpilot/selfdrive/assets/fonts/NotoSansCJKkr-Regular.otf !filter !diff !merge
 openpilot/selfdrive/assets/fonts/NotoSansCJKtc-Regular.otf !filter !diff !merge
 docs/assets/comma-logo.png !filter !diff !merge
+
+# store bootstrap-icons.svg as a regular file (avoid LFS push via gitlab.com ssh)
+third_party/bootstrap/bootstrap-icons.svg -text -filter -diff -merge

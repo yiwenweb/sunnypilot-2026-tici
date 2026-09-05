@@ -14,7 +14,7 @@
 #include <string>
 
 #include "openpilot/common/util.h"
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 #include "openpilot/selfdrive/ui/qt/util.h"
 
 namespace CommaApi {

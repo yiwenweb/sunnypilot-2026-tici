@@ -269,7 +269,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   });
   addItem(retrainingBtn);
 
-  if (Hardware::TICI()) {
+  if (!Hardware::PC()) {
     auto regulatoryBtn = new ButtonControl(tr("Regulatory"), tr("VIEW"), "");
     connect(regulatoryBtn, &ButtonControl::clicked, [=]() {
       const std::string txt = util::read_file("../assets/offroad/fcc.html");

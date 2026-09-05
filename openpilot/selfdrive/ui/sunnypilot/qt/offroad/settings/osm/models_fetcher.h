@@ -26,7 +26,7 @@
 #else
 #include "openpilot/selfdrive/ui/qt/widgets/controls.h"
 #endif
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 static const QString MODELS_PATH = Hardware::PC() ? QDir::homePath() + "/.comma/media/0/models/" : "/data/media/0/models/";
 

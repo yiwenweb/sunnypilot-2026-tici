@@ -12,7 +12,7 @@
 #include <QPlatformSurfaceEvent>
 #endif
 
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 const QString ASSET_PATH = ":/";
 const QSize DEVICE_SCREEN_SIZE = {2160, 1080};

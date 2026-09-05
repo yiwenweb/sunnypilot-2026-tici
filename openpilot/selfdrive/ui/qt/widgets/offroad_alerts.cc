@@ -10,7 +10,7 @@
 #include <QJsonObject>
 
 #include "openpilot/common/util.h"
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 #include "openpilot/selfdrive/ui/qt/widgets/scrollview.h"
 
 AbstractAlert::AbstractAlert(bool hasRebootBtn, QWidget *parent) : QFrame(parent) {

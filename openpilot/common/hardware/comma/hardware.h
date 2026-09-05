@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <map>
 #include <string>
@@ -86,5 +87,31 @@ public:
     }
 
     return ret;
+  }
+
+  // raylib UI drives the backlight through Python in common/hardware/*.py);
+  // the Qt UI is C++ and calls them directly. Mirrors hardware.py behaviour.
+  static void reboot() { std::system("sudo reboot"); }
+
+  static void set_display_power(bool on) {
+    std::ofstream("/sys/class/backlight/panel0-backlight/bl_power") << (on ? "0" : "4") << "\n";
+  }
+
+  static void set_brightness(int percent) {
+    try {
+      float max = std::stof(util::read_file("/sys/class/backlight/panel0-backlight/max_brightness"));
+      std::ofstream("/sys/class/backlight/panel0-backlight/brightness") << int(percent * (max / 100.0f)) << "\n";
+    } catch (...) {
+      // backlight not exposed (e.g. dev boards) - ignore
+    }
+  }
+
+  static int get_brightness() {
+    try {
+      float max = std::stof(util::read_file("/sys/class/backlight/panel0-backlight/max_brightness"));
+      return int(std::stof(util::read_file("/sys/class/backlight/panel0-backlight/brightness")) / (max / 100.0f));
+    } catch (...) {
+      return 0;
+    }
   }
 };

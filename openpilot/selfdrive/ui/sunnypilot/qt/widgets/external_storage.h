@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/controls.h"
 #define ButtonControl ButtonControlSP
 

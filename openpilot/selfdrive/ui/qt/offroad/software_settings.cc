@@ -13,7 +13,7 @@
 #include "openpilot/selfdrive/ui/qt/util.h"
 #include "openpilot/selfdrive/ui/qt/widgets/controls.h"
 #include "openpilot/selfdrive/ui/qt/widgets/input.h"
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 
 void SoftwarePanel::checkForUpdates() {

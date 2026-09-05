@@ -2,7 +2,7 @@
 
 #include <QPushButton>
 
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 #ifdef SUNNYPILOT
 #include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/controls.h"
@@ -13,14 +13,15 @@
 #endif
 
 // SSH enable toggle
+// 2026 removed Hardware::{get,set}_ssh_enabled() (device SSH is managed
+// out-of-band on AGNOS). Keep the row present but disabled instead of
+// referencing a deleted API.
 class SshToggle : public ToggleControl {
   Q_OBJECT
 
 public:
-  SshToggle() : ToggleControl(tr("Enable SSH"), "", "", Hardware::get_ssh_enabled()) {
-    QObject::connect(this, &SshToggle::toggleFlipped, [=](bool state) {
-      Hardware::set_ssh_enabled(state);
-    });
+  SshToggle() : ToggleControl(tr("Enable SSH"), "", "") {
+    setEnabled(false);
   }
 };
 

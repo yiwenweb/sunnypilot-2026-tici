@@ -23,7 +23,7 @@
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/osm/locations_fetcher.h"
 #include "openpilot/selfdrive/ui/qt/util.h"
 #include "openpilot/selfdrive/ui/sunnypilot/ui.h"
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 constexpr int FAST_REFRESH_INTERVAL = 1000; // ms
 constexpr int SLOW_REFRESH_INTERVAL = 5000; // ms

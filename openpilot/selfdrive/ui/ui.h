@@ -14,7 +14,7 @@
 #include "openpilot/common/mat.h"
 #include "openpilot/common/params.h"
 #include "openpilot/common/util.h"
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 #include "openpilot/selfdrive/ui/qt/prime_state.h"
 
 const int UI_BORDER_SIZE = 30;

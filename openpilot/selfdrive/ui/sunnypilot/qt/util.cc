@@ -19,7 +19,7 @@
 #include <QPainterPath>
 #include <QVariant>
 
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 std::optional<QString> getParamIgnoringDefault(const std::string &param_name, const std::string &default_value) {
   std::string value = Params().get(param_name);

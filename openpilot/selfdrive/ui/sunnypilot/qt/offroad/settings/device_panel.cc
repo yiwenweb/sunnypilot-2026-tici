@@ -28,7 +28,7 @@ DevicePanelSP::DevicePanelSP(SettingsWindowSP *parent) : DevicePanel(parent) {
 
   int row = 0, col = 0;
   for (const auto &[id, text, param] : device_btns) {
-    if (id == "regulatoryBtn" && !Hardware::TICI()) {
+    if (id == "regulatoryBtn" && Hardware::PC()) {
       continue;
     }
 
@@ -56,7 +56,7 @@ DevicePanelSP::DevicePanelSP(SettingsWindowSP *parent) : DevicePanel(parent) {
     }
   });
 
-  if (Hardware::TICI()) {
+  if (!Hardware::PC()) {
     connect(buttons["regulatoryBtn"], &PushButtonSP::clicked, [=]() {
       const std::string txt = util::read_file("../assets/offroad/fcc.html");
       ConfirmationDialog::rich(QString::fromStdString(txt), this);

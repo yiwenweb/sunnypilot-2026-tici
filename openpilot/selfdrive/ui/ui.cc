@@ -10,7 +10,7 @@
 #include "openpilot/common/util.h"
 #include "openpilot/common/watchdog.h"
 #include "qt/util.h"
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 #define BACKLIGHT_DT 0.05
 #define BACKLIGHT_TS 10.00

@@ -2,7 +2,7 @@
 
 #include <QFontDatabase>
 
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 
 // We have this constructor so that we can provide custom implementations of the windows. By default (stock_ui) would receive them as nullptr, so they'll be instantiated with stock. Otherwise they'd be SP instances
 MainWindow::MainWindow(QWidget *parent, HomeWindow *hw, SettingsWindow *sw) :

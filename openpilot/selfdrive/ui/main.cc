@@ -3,7 +3,7 @@
 #include <QApplication>
 #include <QTranslator>
 
-#include "openpilot/system/hardware/hw.h"
+#include "openpilot/common/hardware/hw.h"
 #include "openpilot/selfdrive/ui/qt/util.h"
 #include "openpilot/selfdrive/ui/qt/window.h"
 
