@@ -11,6 +11,7 @@
 #include <QStyle>
 #include <QtConcurrent/QtConcurrent>
 #include <QDir>
+#include "openpilot/common/model.h"
 
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/models_panel.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/scrollview.h"
