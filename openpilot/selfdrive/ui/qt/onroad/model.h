@@ -1,0 +1,75 @@
+#pragma once
+
+#include <QPainter>
+#include <QPolygonF>
+
+#ifdef SUNNYPILOT
+#include "openpilot/selfdrive/ui/sunnypilot/ui.h"
+#else
+#include "openpilot/selfdrive/ui/ui.h"
+#endif
+
+constexpr int CLIP_MARGIN = 500;
+constexpr float MIN_DRAW_DISTANCE = 10.0;
+constexpr float MAX_DRAW_DISTANCE = 100.0;
+
+inline int get_path_length_idx(const cereal::XYZTData::Reader &line, const float path_height) {
+  const auto &line_x = line.getX();
+  int max_idx = 0;
+  for (int i = 1; i < line_x.size() && line_x[i] <= path_height; ++i) {
+    max_idx = i;
+  }
+  return max_idx;
+}
+
+class ModelRenderer {
+public:
+  virtual ~ModelRenderer() = default;
+
+  ModelRenderer() {}
+  void setTransform(const Eigen::Matrix3f &transform) { car_space_transform = transform; }
+  void draw(QPainter &painter, const QRect &surface_rect);
+
+protected:
+  bool mapToScreen(float in_x, float in_y, float in_z, QPointF *out);
+  void mapLineToPolygon(const cereal::XYZTData::Reader &line, float y_off, float z_off,
+                        QPolygonF *pvd, int max_idx, bool allow_invert = true);
+  void drawLead(QPainter &painter, const cereal::RadarState::LeadData::Reader &lead_data, const QPointF &vd, const QRect &surface_rect);
+  void update_leads(const cereal::RadarState::Reader &radar_state, const cereal::XYZTData::Reader &line);
+  // Re-reads the "CameraOffset" param at ~3s intervals, matching the raylib UI.
+  void updateCameraOffset();
+  virtual void update_model(const cereal::ModelDataV2::Reader &model, const cereal::RadarState::LeadData::Reader &lead);
+  void drawLaneLines(QPainter &painter);
+  void drawPath(QPainter &painter, const cereal::ModelDataV2::Reader &model, int height);
+  void updatePathGradient(QLinearGradient &bg);
+  QColor blendColors(const QColor &start, const QColor &end, float t);
+  // Reads longitudinalPlan.allowThrottle. SubMaster::operator[] is an
+  // unchecked services_.at(), so a build whose SubMaster forgot to subscribe
+  // would throw std::out_of_range and abort the UI on the first onroad frame.
+  // Probe once and fall back to "throttle allowed" instead.
+  bool allowThrottle();
+  enum class ServiceState { UNKNOWN, AVAILABLE, MISSING };
+  ServiceState long_plan_state = ServiceState::UNKNOWN;
+
+  bool longitudinal_control = false;
+  bool experimental_mode = false;
+  float blend_factor = 1.0f;
+  bool prev_allow_throttle = true;
+  float lane_line_probs[4] = {};
+  float road_edge_stds[2] = {};
+  float path_offset_z = 1.22f;
+  // Lateral shift (meters) applied to model geometry so the drawn path/lane lines
+  // match what modeld sees after CameraOffsetHelper shears the model transform.
+  // Positive shifts the visualization to the left, same convention as
+  // sunnypilot/modeld_v2/camera_offset_helper.py. Only applied when a custom
+  // model bundle is active, mirroring the raylib UI.
+  float camera_offset = 0.0f;
+  int camera_offset_counter = 0;  // 0 forces a read on the first frame
+  Params params;
+  QPolygonF track_vertices;
+  QPolygonF lane_line_vertices[4] = {};
+  QPolygonF road_edge_vertices[2] = {};
+  QPointF lead_vertices[2] = {};
+  Eigen::Matrix3f car_space_transform = Eigen::Matrix3f::Zero();
+  QRectF clip_region;
+};
