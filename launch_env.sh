@@ -44,3 +44,12 @@ for cpu in 4 5 6 7; do
     echo 1 | sudo tee "/sys/devices/system/cpu/cpu${cpu}/online" > /dev/null 2>&1 || true
   fi
 done
+
+# --- core_ctl disable (2026-09-05) ---
+# 根治: core_ctl 在行车中(powersave=False)也会按负载启发式自动热插拔大核,
+# 导致绑核 radard 等被内核解绑迁移 -> radarState 掉频 -> commIssue/TAKE CONTROL.
+# disable 只禁自动热插拔算法; openpilot powersave 手动 echo 0 > cpuN/online 仍有效.
+# (验证: enable=0 后手动拔核保持 offline, 手动拉回正常)
+if [ -d /sys/devices/system/cpu/cpu4/core_ctl ]; then
+  echo 0 | sudo tee /sys/devices/system/cpu/cpu4/core_ctl/enable > /dev/null 2>&1 || true
+fi
