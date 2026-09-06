@@ -41,7 +41,7 @@ class LaneCenterStatusRenderer(Widget):
   def __init__(self):
     super().__init__()
     self._font_semi = gui_app.font(FontWeight.SEMI_BOLD)
-    self._font_regular = gui_app.font(FontWeight.REGULAR)
+    self._font_regular = gui_app.font(FontWeight.NORMAL)
     self._params_t = 0.0
     self._lc_enabled = False
     self._aco_enabled = False
