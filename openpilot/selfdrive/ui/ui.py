@@ -14,8 +14,9 @@ BIG_UI = gui_app.big_ui()
 
 
 def main():
-  cores = {5, }
-  # above plannerd and radard
+  cores = {6, }
+  # dedicated big core: keeps UI away from plannerd/radard on cpu5
+  # (ui is CTRL_HIGH and would preempt them when they share a core)
   config_realtime_process(0, Priority.CTRL_HIGH)
 
   gui_app.init_window("UI")
