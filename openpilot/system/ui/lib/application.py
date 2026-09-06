@@ -46,6 +46,12 @@ RECORD_OUTPUT = str(Path(os.getenv("RECORD_OUTPUT", "output")).with_suffix(".mp4
 RECORD_QUALITY = int(os.getenv("RECORD_QUALITY", "23"))  # Dynamic bitrate quality level (CRF); 0 is lossless (bigger size), max is 51, default is 23 for x264
 RECORD_BITRATE = os.getenv("RECORD_BITRATE", "")  # Target bitrate e.g. "2000k" (overrides RECORD_QUALITY when set)
 RECORD_SPEED = int(os.getenv("RECORD_SPEED", "1"))  # Speed multiplier
+STREAM = os.getenv("STREAM", "1") == "1"  # real-time UI streaming (default on)
+STREAM_FPS = int(os.getenv("STREAM_FPS", "10"))
+STREAM_QUALITY = int(os.getenv("STREAM_QUALITY", "80"))
+STREAM_SHM = "/dev/shm/openpilot_ui_frames"
+STREAM_SHM_SIZE = 8 * 1024 * 1024 + 32
+
 OFFSCREEN = os.getenv("OFFSCREEN") == "1"  # Disable FPS limiting for fast offline rendering
 
 GL_VERSION = """
@@ -281,6 +287,10 @@ class GuiApplication(GuiApplicationExt):
     self._target_fps: int = _DEFAULT_FPS
     self._last_fps_log_time: float = time.monotonic()
     self._frame = 0
+    self._stream_shm = None
+    self._stream_queue = None
+    self._stream_thread = None
+    self._stream_frame = 0
     self._window_close_requested = False
     self._nav_stack: list[object] = []
     self._nav_stack_ticks: list[Callable[[], None]] = []
@@ -339,7 +349,7 @@ class GuiApplication(GuiApplicationExt):
 
       rl.init_window(self._scaled_width, self._scaled_height, title)
 
-      needs_render_texture = self._scale != 1.0 or BURN_IN_MODE or RECORD
+      needs_render_texture = self._scale != 1.0 or BURN_IN_MODE or RECORD or STREAM
       if self._scale != 1.0:
         rl.set_mouse_scale(1 / self._scale, 1 / self._scale)
       if needs_render_texture:
@@ -376,6 +386,20 @@ class GuiApplication(GuiApplicationExt):
         self._ffmpeg_stop_event = threading.Event()
         self._ffmpeg_thread = threading.Thread(target=self._ffmpeg_writer_thread, daemon=True)
         self._ffmpeg_thread.start()
+
+      if STREAM:
+        import mmap as _mmap
+        try:
+          _fd = os.open(STREAM_SHM, os.O_RDWR | os.O_CREAT, 0o666)
+          os.ftruncate(_fd, STREAM_SHM_SIZE)
+          self._stream_shm = _mmap.mmap(_fd, STREAM_SHM_SIZE)
+          os.close(_fd)
+          self._stream_queue = queue.Queue(maxsize=2)
+          self._stream_thread = threading.Thread(target=self._stream_worker, daemon=True)
+          self._stream_thread.start()
+          cloudlog.info(f"STREAM: ui frame streaming enabled ({STREAM_SHM})")
+        except Exception as e:
+          cloudlog.error(f"STREAM init failed: {e}")
 
       # four display runs slightly faster than 60 FPS, let it dictate rate so we don't drift and drop frames
       vblank_control = HARDWARE.get_device_type() == 'mici'
@@ -436,6 +460,41 @@ class GuiApplication(GuiApplicationExt):
         continue
       except Exception:
         break
+
+  def _stream_worker(self):
+    """Background thread: RGBA texture -> JPEG -> shared memory."""
+    try:
+      from PIL import Image
+      import io as _io
+      import struct as _st
+    except Exception:
+      return
+    while True:
+      try:
+        data = self._stream_queue.get(timeout=1.0)
+      except queue.Empty:
+        continue
+      try:
+        tex = self._render_texture.texture
+        img = Image.frombytes("RGBA", (tex.width, tex.height), data).convert("RGB")
+        out_w, out_h = 1280, 640
+        if tex.width != out_w or tex.height != out_h:
+          img = img.resize((out_w, out_h), Image.BOX)
+        buf = _io.BytesIO()
+        img.save(buf, "JPEG", quality=STREAM_QUALITY)
+        jpg = buf.getvalue()
+        if self._stream_shm is not None:
+          self._stream_shm.seek(0)
+          self._stream_shm.write(_st.pack("<QIIII", int(time.time() * 1000),
+                                          out_w, out_h, len(jpg), 1))
+          self._stream_shm.write(b"\x00")          # ready=0
+          self._stream_shm.write(b"\x00" * 6)      # padding -> offset 31
+          self._stream_shm.write(jpg)
+          self._stream_shm.seek(24)
+          self._stream_shm.write(b"\x01")          # ready=1
+          cloudlog.info(f"STREAM frame written {len(jpg)}B")
+      except Exception as e:
+        cloudlog.error(f"STREAM worker err: {e}")
 
   def push_widget(self, widget: object):
     if widget in self._nav_stack:
@@ -730,6 +789,21 @@ class GuiApplication(GuiApplicationExt):
           data = bytes(rl.ffi.buffer(image.data, data_size))
           self._ffmpeg_queue.put(data)  # Async write via background thread
           rl.unload_image(image)
+
+        if STREAM and self._stream_queue is not None:
+          self._stream_frame += 1
+          if self._stream_frame % max(1, int(self._target_fps / STREAM_FPS)) == 0:
+            try:
+              image = rl.load_image_from_texture(self._render_texture.texture)
+              data_size = image.width * image.height * 4
+              data = bytes(rl.ffi.buffer(image.data, data_size))
+              rl.unload_image(image)
+              try:
+                self._stream_queue.put_nowait(data)
+              except queue.Full:
+                pass
+            except Exception as e:
+              cloudlog.error(f"STREAM capture err: {e}")
 
         self._monitor_fps()
         self._frame += 1

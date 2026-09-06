@@ -91,6 +91,13 @@ function launch {
   # write tmux scrollback to a file
   tmux capture-pane -pq -S-1000 > /tmp/launch_log
 
+  # c3 super-video tooling: touch injector + MJPEG stream server
+  sudo pkill -f c3tools/c3touchd 2>/dev/null || true
+  sudo pkill -f stream_server.py 2>/dev/null || true
+  sleep 1
+  sudo /data/c3tools/c3touchd > /tmp/c3touchd.log 2>&1 &
+  python3 /data/stream_server.py > /tmp/stream_server.log 2>&1 &
+
   # start manager
   cd openpilot/system/manager
   if [ ! -f $DIR/prebuilt ]; then

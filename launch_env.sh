@@ -53,3 +53,14 @@ done
 if [ -d /sys/devices/system/cpu/cpu4/core_ctl ]; then
   echo 0 | sudo tee /sys/devices/system/cpu/cpu4/core_ctl/enable > /dev/null 2>&1 || true
 fi
+
+# --- venv python on PATH (2026-09-06) ---
+# manager starts python processes via subprocess.Popen(['python', ...]); the
+# bare 'python' name only resolves if the venv bin dir is on PATH (AGNOS ships
+# python3 only). tmux-manual launches inherit the default PATH and crash with
+# FileNotFoundError: 'python'. Keep the venv first so pyray/raylib imports work.
+export PATH="/usr/local/venv/bin:$PATH"
+
+# --- UI streaming tuning (super video) ---
+# worker downscales to 1280x640; 5fps keeps UI core (cpu6) headroom.
+export STREAM_FPS=5
