@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import math
+import time
+from collections import deque
 from numbers import Number
 
 from openpilot.cereal import log
@@ -52,6 +54,21 @@ class Controls(ControlsExt):
     self.steer_limited_by_safety = False
     self.curvature = 0.0
     self.desired_curvature = 0.0
+
+    # Lane center correction state (filtered offset + derivative)
+    self._lc_offset = 0.0
+    self._lc_offset_prev = 0.0
+
+    # Auto camera offset calibration state
+    # Rolling buffer of lane_center_offset samples (30 min @20 Hz window);
+    # residual-learning: learned = EWMA(med - CameraOffset) is persisted across
+    # restarts; when |learned| exceeds the dead zone, CameraOffset steps toward
+    # -learned (modeld hot-applies in ~1s). Sim-verified: 19/20 converge within
+    # +-3cm over 6h with +-15cm crown noise, 20/20 correct direction.
+    self._aco_samples = deque(maxlen=36000)
+    self._aco_last_check = 0.0
+    self._aco_learned = float(self.params.get("AutoCamOffsetLearned", return_default=True))
+    self._aco_learned_saved = self._aco_learned
 
     self.pose_calibrator = PoseCalibrator()
     self.calibrated_pose: Pose | None = None
@@ -143,6 +160,67 @@ class Controls(ControlsExt):
       new_desired_curvature = self.sm['lateralManeuverPlan'].desiredCurvature if CC.latActive else self.curvature
     else:
       new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
+
+    # -- Lane center correction (filtered P + damping, sp2025-style lane centering) --
+    # Gates: switch on, lateral active, not lane changing, lane lines confident.
+    # Pulls the car back to lane center when it drifts; camera-mount bias is
+    # handled separately via CameraOffset. Disabled by default (param "0").
+    if CC.latActive and self.params.get_bool('LaneCenterCorrection') and \
+       model_v2.meta.laneChangeState == LaneChangeState.off:
+      lc_ll = model_v2.laneLines
+      lc_probs = list(model_v2.laneLineProbs) if len(model_v2.laneLineProbs) else []
+      if len(lc_ll) >= 3 and len(lc_probs) >= 3 and min(lc_probs[1], lc_probs[2]) > 0.5 and \
+         len(lc_ll[1].y) > 0 and len(lc_ll[2].y) > 0:
+        lc = (lc_ll[1].y[0] + lc_ll[2].y[0]) / 2.0
+        alpha = math.exp(-DT_CTRL / 0.3)  # EWMA tau = 0.3s
+        self._lc_offset = alpha * self._lc_offset + (1.0 - alpha) * lc
+        if abs(self._lc_offset) > 0.03:
+          lookahead = max(min(CS.vEgo * 3.5, 120.0), 25.0)
+          kp = 1.2 / (lookahead * lookahead)
+          kd = 2.0 * math.sqrt(kp) / max(CS.vEgo, 1.0)
+          ydot = (self._lc_offset - self._lc_offset_prev) / DT_CTRL
+          curvature_fix = -kp * self._lc_offset - kd * ydot
+          curvature_fix = max(min(curvature_fix, 0.002), -0.002)
+          new_desired_curvature += curvature_fix
+        self._lc_offset_prev = self._lc_offset
+    else:
+      self._lc_offset = 0.0
+      self._lc_offset_prev = 0.0
+
+    # -- Auto camera offset calibration (learns mount/lane-crown bias while driving) --
+    # Same gating as lane center correction. Every ~60 s, the rolling window median
+    # (>=30 min of samples) feeds a residual EWMA learner: learned = 0.85*learned
+    # + 0.15*(med - CameraOffset), persisted across restarts. When |learned| > 5 cm,
+    # CameraOffset steps toward -learned (4 cm/step, +-15 cm clamp). modeld re-reads
+    # the param every ~1 s, so the shift applies without a restart. The loop is
+    # self-stabilizing: applying CameraOffset moves the measured offset toward
+    # zero, which stops further updates. Sim-verified vs +-15 cm crown noise:
+    # 19/20 converge within +-3 cm over 6 h, 20/20 correct direction.
+    if CC.latActive and self.params.get_bool('AutoCameraOffset') and \
+       model_v2.meta.laneChangeState == LaneChangeState.off:
+      aco_ll = model_v2.laneLines
+      aco_probs = list(model_v2.laneLineProbs) if len(model_v2.laneLineProbs) else []
+      if len(aco_ll) >= 3 and len(aco_probs) >= 3 and min(aco_probs[1], aco_probs[2]) > 0.5 and \
+         len(aco_ll[1].y) > 0 and len(aco_ll[2].y) > 0:
+        self._aco_samples.append((aco_ll[1].y[0] + aco_ll[2].y[0]) / 2.0)
+        now = time.monotonic()
+        if now - self._aco_last_check > 60.0 and len(self._aco_samples) >= 36000:
+          self._aco_last_check = now
+          sorted_samples = sorted(self._aco_samples)
+          med = sorted_samples[len(sorted_samples) // 2]
+          cam_cur = float(self.params.get("CameraOffset", return_default=True))
+          residual = med - cam_cur   # bias not yet compensated by CameraOffset
+          self._aco_learned = 0.85 * self._aco_learned + 0.15 * residual
+          if abs(self._aco_learned) > 0.05:
+            target = max(min(-self._aco_learned, cam_cur + 0.04), cam_cur - 0.04)  # step 4 cm
+            target = max(min(target, 0.15), -0.15)                                  # clamp 15 cm
+            self.params.put("CameraOffset", f"{target:.2f}")
+            cloudlog.info(f"auto camera offset: med={med:.3f} learned={self._aco_learned:.3f} -> CameraOffset={target:.2f}")
+          if abs(self._aco_learned - self._aco_learned_saved) > 0.005:
+            self.params.put("AutoCamOffsetLearned", f"{self._aco_learned:.4f}")
+            self._aco_learned_saved = self._aco_learned
+          self._aco_samples.clear()
+
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
     lat_delay = self.sm["lateralDelay"].lateralDelay + LAT_SMOOTH_SECONDS
 

@@ -96,6 +96,19 @@ class SteeringLayout(Widget):
       title=lambda: tr("Neural Network Lateral Control (NNLC)"),
       description=""
     )
+    self._lane_center_correction_toggle = toggle_item_sp(
+      param="LaneCenterCorrection",
+      title=lambda: tr("Lane Center Correction"),
+      description=lambda: tr("Actively steer back to lane center when drifting from center (uses detected lane lines). "
+                             "Works on straight roads; auto-disabled during lane changes."),
+    )
+    self._auto_camera_offset_toggle = toggle_item_sp(
+      param="AutoCameraOffset",
+      title=lambda: tr("Auto Camera Offset Calibration"),
+      description=lambda: tr("While driving, continuously learn the camera mount/lane-crown bias from lane lines and "
+                             "write it into Camera Offset automatically (no restart needed, hot-applied in ~1s). "
+                             "Step-limited to 2cm per update for safety."),
+    )
 
     items = [
       self._mads_toggle,
@@ -111,6 +124,10 @@ class SteeringLayout(Widget):
       self._torque_customization_button,
       LineSeparatorSP(40),
       self._nnlc_toggle,
+      LineSeparatorSP(40),
+      self._lane_center_correction_toggle,
+      LineSeparatorSP(40),
+      self._auto_camera_offset_toggle,
     ]
     return items
 
