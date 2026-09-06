@@ -1,0 +1,74 @@
+<html style="margin:0;padding:0;">
+<div style="background-color:transparent;box-sizing:border-box;font-family:'Roboto','PingFang SC','Segoe UI',Arial,sans-serif;--accent:#94D4D0;color:#1A1B1C;padding:4px 2px;max-width:760px;">
+
+  <div style="font-size:15px;font-weight:600;margin:8px 2px 2px;">直行压线根因链路（rlog 全量实证）</div>
+  <div style="font-size:12px;color:#6B7280;margin:0 2px 12px;">数据口径：88 段 rlog，横向激活 317,253 帧；13/13 高误差段积分冻结</div>
+
+  <!-- 机制链 -->
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin-bottom:16px;">
+    <div style="flex:1 1 150px;min-width:0;background:linear-gradient(135deg,rgba(234,102,104,0.10),rgba(234,102,104,0.18));border-radius:12px;padding:10px 12px;box-sizing:border-box;">
+      <div style="font-size:12px;color:#EA6668;font-weight:600;">① 信号源</div>
+      <div style="font-size:16px;font-weight:600;margin-top:3px;">DrvTq 60~180</div>
+      <div style="font-size:11px;color:#6B7280;margin-top:2px;">唐DM EPS 把自然握持读成驾驶员扭矩（全段 p90=48，>59 占 8.2%）</div>
+    </div>
+    <div style="align-self:center;font-size:16px;color:#9CA3AF;padding-bottom:18px;">→</div>
+    <div style="flex:1 1 150px;min-width:0;background:linear-gradient(135deg,rgba(250,173,20,0.10),rgba(250,173,20,0.20));border-radius:12px;padding:10px 12px;box-sizing:border-box;">
+      <div style="font-size:12px;color:#D48806;font-weight:600;">② 误判</div>
+      <div style="font-size:16px;font-weight:600;margin-top:3px;">pressed=True 18.6%</div>
+      <div style="font-size:11px;color:#6B7280;margin-top:2px;">阈值 59 太低，横控期间 18.6% 时间被判定"驾驶员介入"（部分路段 76%）</div>
+    </div>
+    <div style="align-self:center;font-size:16px;color:#9CA3AF;padding-bottom:18px;">→</div>
+    <div style="flex:1 1 150px;min-width:0;background:linear-gradient(135deg,rgba(250,173,20,0.10),rgba(250,173,20,0.20));border-radius:12px;padding:10px 12px;box-sizing:border-box;">
+      <div style="font-size:12px;color:#D48806;font-weight:600;">③ 冻结</div>
+      <div style="font-size:16px;font-weight:600;margin-top:3px;">freeze_integrator</div>
+      <div style="font-size:11px;color:#6B7280;margin-top:2px;">latcontrol_torque 冻结积分器（实测 i=+0.251 恒定不动）</div>
+    </div>
+    <div style="align-self:center;font-size:16px;color:#9CA3AF;padding-bottom:18px;">→</div>
+    <div style="flex:1 1 150px;min-width:0;background:linear-gradient(135deg,rgba(148,212,208,0.12),rgba(148,212,208,0.22));border-radius:12px;padding:10px 12px;box-sizing:border-box;">
+      <div style="font-size:12px;color:#0E7C74;font-weight:600;">④ 结果</div>
+      <div style="font-size:16px;font-weight:600;margin-top:3px;">稳态修正力缺失</div>
+      <div style="font-size:11px;color:#6B7280;margin-top:2px;">横坡/侧风/零位偏移无法抵消 → 直线缓慢偏移压线</div>
+    </div>
+    <div style="align-self:center;font-size:16px;color:#9CA3AF;padding-bottom:18px;">→</div>
+    <div style="flex:1 1 150px;min-width:0;background:linear-gradient(135deg,rgba(139,200,234,0.10),rgba(139,200,234,0.20));border-radius:12px;padding:10px 12px;box-sizing:border-box;">
+      <div style="font-size:12px;color:#2B6FA3;font-weight:600;">⑤ 恢复慢</div>
+      <div style="font-size:16px;font-weight:600;margin-top:3px;">只剩 P 项</div>
+      <div style="font-size:11px;color:#6B7280;margin-top:2px;">高速 KP=0.8 输出小，必须等 error 积累够大才有力 → "等很久"</div>
+    </div>
+  </div>
+
+  <!-- 阈值模拟 -->
+  <div style="font-size:13.5px;font-weight:600;margin:2px 2px 6px;">提高阈值后的积分冻结缓解（88 段全量重算）</div>
+  <div style="background:#FFFFFF;border:1px solid #E4E3DD;border-radius:12px;padding:14px 14px 6px;">
+    <div style="display:flex;align-items:flex-end;gap:10px;height:150px;padding:0 8px;flex-wrap:nowrap;">
+      <div style="flex:1;min-width:0;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:#EA6668;">18.6%</div>
+        <div style="background:#EA6668;height:120px;border-radius:6px 6px 0 0;margin-top:4px;"></div>
+        <div style="font-size:11px;color:#6B7280;margin-top:5px;">59 现状</div>
+      </div>
+      <div style="flex:1;min-width:0;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:#6B7280;">12.0%</div>
+        <div style="background:#F4B393;height:77px;border-radius:6px 6px 0 0;margin-top:4px;"></div>
+        <div style="font-size:11px;color:#6B7280;margin-top:5px;">90</div>
+      </div>
+      <div style="flex:1;min-width:0;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:#0E7C74;">9.2%</div>
+        <div style="background:#52C41A;height:59px;border-radius:6px 6px 0 0;margin-top:4px;border:2px solid #0E7C74;"></div>
+        <div style="font-size:11px;font-weight:600;color:#0E7C74;margin-top:5px;">110 推荐</div>
+      </div>
+      <div style="flex:1;min-width:0;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:#6B7280;">6.7%</div>
+        <div style="background:#94D4D0;height:43px;border-radius:6px 6px 0 0;margin-top:4px;"></div>
+        <div style="font-size:11px;color:#6B7280;margin-top:5px;">130</div>
+      </div>
+      <div style="flex:1;min-width:0;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:#6B7280;">4.2%</div>
+        <div style="background:#94D4D0;height:27px;border-radius:6px 6px 0 0;margin-top:4px;"></div>
+        <div style="font-size:11px;color:#6B7280;margin-top:5px;">150</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#6B7280;padding:8px 4px 2px;">y 轴：横向激活期间 pressed=True 的帧占比；柱高按 120px/18.6% 等比换算。真正对抗（死掰 DrvTq≈234）在 110 阈值下仍正常触发，panda 层 DriverOverride 限幅不受影响。</div>
+  </div>
+
+</div>
+</html>
