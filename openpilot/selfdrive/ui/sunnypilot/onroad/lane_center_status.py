@@ -19,6 +19,8 @@ import time
 
 import pyray as rl
 
+from openpilot.selfdrive.ui import UI_BORDER_SIZE
+from openpilot.selfdrive.ui.onroad.driver_state import BTN_SIZE
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
@@ -49,6 +51,7 @@ class LaneCenterStatusRenderer(Widget):
     self._lines_ok = False
     self._correcting = False
     self._learning = False
+    self._is_rhd = False
 
   def _read_params(self):
     now = time.monotonic()
@@ -75,6 +78,9 @@ class LaneCenterStatusRenderer(Widget):
       self._lines_ok = False
       self._correcting = False
       return
+
+    dm = sm["driverMonitoringState"]
+    self._is_rhd = dm.isRHD
 
     mv = sm["modelV2"]
     ll = mv.laneLines
@@ -126,8 +132,20 @@ class LaneCenterStatusRenderer(Widget):
       box_w = max(box_w, w)
 
     box_h = row_h * len(rows) + 16
-    box_x = rect.x + rect.width / 2 - box_w / 2
-    box_y = rect.y + 66
+
+    # Position: anchored to the driver-monitoring circle (bottom-left for LHD,
+    # bottom-right for RHD), placed on its outside edge and vertically centered.
+    offset = UI_BORDER_SIZE + BTN_SIZE // 2
+    btn_cx = rect.x + (rect.width - offset if self._is_rhd else offset)
+    btn_cy = rect.y + rect.height - offset
+    gap = 16.0
+    box_y = btn_cy - box_h / 2.0
+    if self._is_rhd:
+      box_x = btn_cx - BTN_SIZE / 2.0 - gap - box_w
+    else:
+      box_x = btn_cx + BTN_SIZE / 2.0 + gap
+    box_x = max(box_x, rect.x + 10.0)
+
     rl.draw_rectangle_rounded(rl.Rectangle(box_x, box_y, box_w, box_h), 0.25, 10, COLOR_BG)
 
     y = box_y + 8
