@@ -577,8 +577,8 @@ msgid "Display steering arc on the driving screen when lateral control is enable
 msgstr "启用横向控制时，在驾驶屏幕上显示转向弧。"
 
 #: openpilot/selfdrive/ui/sunnypilot/layouts/settings/visuals.py
-msgid "Display useful metrics below the chevron that tracks the lead car only applicable to cars with sunnypilot longitudinal control."
-msgstr "在跟踪前车的人字形标记下方显示实用指标，仅适用于支持 sunnypilot 纵向控制的车辆。"
+msgid "Display useful metrics below the chevron that tracks the lead car."
+msgstr "在跟踪前车的人字形标记下方显示实用指标。"
 
 #: openpilot/selfdrive/ui/sunnypilot/layouts/settings/visuals.py
 msgid "Displays the name of the road the car is traveling on.<br>The OpenStreetMap database of the location must be downloaded from the OSM panel to fetch the road name."

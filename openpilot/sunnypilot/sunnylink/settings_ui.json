@@ -1472,13 +1472,6 @@
                     "equals": "mici"
                   }
                 }
-              ],
-              "enablement": [
-                {
-                  "type": "capability",
-                  "field": "has_longitudinal_control",
-                  "equals": true
-                }
               ]
             }
           ]
