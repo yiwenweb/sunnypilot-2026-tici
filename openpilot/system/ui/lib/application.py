@@ -476,7 +476,7 @@ class GuiApplication(GuiApplicationExt):
         continue
       try:
         tex = self._render_texture.texture
-        img = Image.frombytes("RGBA", (tex.width, tex.height), data).convert("RGB")
+        img = Image.frombytes("RGBA", (tex.width, tex.height), data).convert("RGB").transpose(Image.FLIP_TOP_BOTTOM)
         out_w, out_h = 1280, 640
         if tex.width != out_w or tex.height != out_h:
           img = img.resize((out_w, out_h), Image.BOX)

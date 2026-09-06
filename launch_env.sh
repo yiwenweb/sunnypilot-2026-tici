@@ -62,5 +62,5 @@ fi
 export PATH="/usr/local/venv/bin:$PATH"
 
 # --- UI streaming tuning (super video) ---
-# worker downscales to 1280x640; 5fps keeps UI core (cpu6) headroom.
-export STREAM_FPS=5
+# worker downscales to 1280x640; 8fps balances latency (~125ms) and UI core headroom.
+export STREAM_FPS=8
