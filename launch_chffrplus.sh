@@ -70,7 +70,9 @@ function launch {
 
   # handle pythonpath
   ln -sfn $(pwd) /data/pythonpath
-  export PYTHONPATH="$PWD:/data/python_packages"
+  # ui runtime deps (pyray/raylib) live in /usr/local/venv on C3; keep it on
+  # the path so the UI can import pyray even when manager runs system python3.
+  export PYTHONPATH="$PWD:/data/python_packages:/usr/local/venv/lib/python3.12/site-packages"
 
   # submodule package symlinks for PYTHONPATH imports on device.
   # on PC these come from editable installs via pyproject.toml / uv.
