@@ -200,6 +200,14 @@
     ],
     "package": "Driver Confidence Package 2"
   },
+  "BYD TANG DM": {
+    "platform": "BYD_TANG_DM",
+    "make": "BYD",
+    "brand": "byd",
+    "model": "TANG DM",
+    "year": [],
+    "package": "All"
+  },
   "Cadillac Escalade 2017": {
     "platform": "CADILLAC_ESCALADE",
     "make": "Cadillac",
