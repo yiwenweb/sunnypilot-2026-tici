@@ -49,6 +49,8 @@ RECORD_SPEED = int(os.getenv("RECORD_SPEED", "1"))  # Speed multiplier
 STREAM = os.getenv("STREAM", "1") == "1"  # real-time UI streaming (default on)
 STREAM_FPS = int(os.getenv("STREAM_FPS", "10"))
 STREAM_QUALITY = int(os.getenv("STREAM_QUALITY", "80"))
+STREAM_W = int(os.getenv("STREAM_W", "1280"))  # GPU pre-scale output width
+STREAM_H = int(os.getenv("STREAM_H", "640"))   # GPU pre-scale output height
 STREAM_SHM = "/dev/shm/openpilot_ui_frames"
 STREAM_SHM_SIZE = 8 * 1024 * 1024 + 32
 
@@ -290,6 +292,7 @@ class GuiApplication(GuiApplicationExt):
     self._stream_shm = None
     self._stream_queue = None
     self._stream_thread = None
+    self._stream_rt = None
     self._stream_frame = 0
     self._window_close_requested = False
     self._nav_stack: list[object] = []
@@ -395,9 +398,17 @@ class GuiApplication(GuiApplicationExt):
           self._stream_shm = _mmap.mmap(_fd, STREAM_SHM_SIZE)
           os.close(_fd)
           self._stream_queue = queue.Queue(maxsize=2)
+          # v3: GPU pre-scale render target (1280x640).  We blit the full-size
+          # UI texture into this small RT on the GPU, then read back only
+          # 1280x640x4 (3.3MB) instead of 2160x1080x4 (9.3MB).  This removes
+          # the expensive PIL BOX resize (~42ms/frame) from _stream_worker and
+          # shrinks the main-thread glReadPixels + memcpy cost ~3x, fixing the
+          # CPU0 saturation that made onroad UI stutter.
+          self._stream_rt = rl.load_render_texture(STREAM_W, STREAM_H)
+          rl.set_texture_filter(self._stream_rt.texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
           self._stream_thread = threading.Thread(target=self._stream_worker, daemon=True)
           self._stream_thread.start()
-          cloudlog.info(f"STREAM: ui frame streaming enabled ({STREAM_SHM})")
+          cloudlog.info(f"STREAM: ui frame streaming enabled ({STREAM_SHM}, gpu-scaled {STREAM_W}x{STREAM_H})")
         except Exception as e:
           cloudlog.error(f"STREAM init failed: {e}")
 
@@ -462,7 +473,7 @@ class GuiApplication(GuiApplicationExt):
         break
 
   def _stream_worker(self):
-    """Background thread: RGBA texture -> JPEG -> shared memory."""
+    """Background thread: RGBA (pre-scaled 1280x640) -> JPEG -> shared memory."""
     try:
       from PIL import Image
       import io as _io
@@ -471,28 +482,24 @@ class GuiApplication(GuiApplicationExt):
       return
     while True:
       try:
-        data = self._stream_queue.get(timeout=1.0)
+        item = self._stream_queue.get(timeout=1.0)
       except queue.Empty:
         continue
       try:
-        tex = self._render_texture.texture
-        img = Image.frombytes("RGBA", (tex.width, tex.height), data).convert("RGB").transpose(Image.FLIP_TOP_BOTTOM)
-        out_w, out_h = 1280, 640
-        if tex.width != out_w or tex.height != out_h:
-          img = img.resize((out_w, out_h), Image.BOX)
+        data, w, h = item
+        img = Image.frombytes("RGBA", (w, h), data).convert("RGB").transpose(Image.FLIP_TOP_BOTTOM)
         buf = _io.BytesIO()
         img.save(buf, "JPEG", quality=STREAM_QUALITY)
         jpg = buf.getvalue()
         if self._stream_shm is not None:
           self._stream_shm.seek(0)
           self._stream_shm.write(_st.pack("<QIIII", int(time.time() * 1000),
-                                          out_w, out_h, len(jpg), 1))
+                                          w, h, len(jpg), 1))
           self._stream_shm.write(b"\x00")          # ready=0
           self._stream_shm.write(b"\x00" * 6)      # padding -> offset 31
           self._stream_shm.write(jpg)
           self._stream_shm.seek(24)
           self._stream_shm.write(b"\x01")          # ready=1
-          cloudlog.info(f"STREAM frame written {len(jpg)}B")
       except Exception as e:
         cloudlog.error(f"STREAM worker err: {e}")
 
@@ -794,12 +801,22 @@ class GuiApplication(GuiApplicationExt):
           self._stream_frame += 1
           if self._stream_frame % max(1, int(self._target_fps / STREAM_FPS)) == 0:
             try:
-              image = rl.load_image_from_texture(self._render_texture.texture)
+              # v3: GPU pre-scale the full-size UI texture into the small
+              # stream RT, then read back only 1280x640x4 (3.3MB).  Keeps the
+              # expensive 9.3MB glReadPixels + PIL BOX resize off the hot path.
+              src = rl.Rectangle(0, 0, float(self._scaled_width), -float(self._scaled_height))
+              dst = rl.Rectangle(0, 0, float(STREAM_W), float(STREAM_H))
+              rl.begin_texture_mode(self._stream_rt)
+              rl.clear_background(rl.BLACK)
+              rl.draw_texture_pro(self._render_texture.texture, src, dst,
+                                  rl.Vector2(0, 0), 0.0, rl.WHITE)
+              rl.end_texture_mode()
+              image = rl.load_image_from_texture(self._stream_rt.texture)
               data_size = image.width * image.height * 4
               data = bytes(rl.ffi.buffer(image.data, data_size))
               rl.unload_image(image)
               try:
-                self._stream_queue.put_nowait(data)
+                self._stream_queue.put_nowait((data, image.width, image.height))
               except queue.Full:
                 pass
             except Exception as e:
