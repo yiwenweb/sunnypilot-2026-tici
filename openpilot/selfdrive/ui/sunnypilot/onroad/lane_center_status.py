@@ -153,7 +153,9 @@ class LaneCenterStatusRenderer(Widget):
       dot_r = 6.0
       title_sz = measure_text_cached(self._font_semi, title, FONT_SIZE)
       tx = box_x + dot_r * 2 + 12
-      rl.draw_circle(box_x + dot_r, y + FONT_SIZE / 2 - 3, dot_r, dot_c)
+      # DrawCircle takes (int centerX, int centerY, float radius, Color): box_x/y are
+      # floats, so cast or pyray raises "TypeError: an integer is required"
+      rl.draw_circle(int(box_x + dot_r), int(y + FONT_SIZE // 2 - 3), dot_r, dot_c)
       rl.draw_text_ex(self._font_semi, title, rl.Vector2(tx, y), FONT_SIZE, 0, COLOR_TEXT)
       rl.draw_text_ex(self._font_regular, value, rl.Vector2(tx + title_sz.x + 12, y), FONT_SIZE, 0, value_c)
       y += row_h
