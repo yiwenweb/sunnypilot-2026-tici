@@ -92,12 +92,12 @@ function launch {
   tmux capture-pane -pq -S-1000 > /tmp/launch_log
 
   # c3 super-video tooling: touch injector + MJPEG stream server
-  sudo pkill -f c3tools/c3touchd 2>/dev/null || true
+  sudo pkill -f c3tools/c3touchd 2>/dev/null; sudo pkill -f c3tools/c3touchd_ev2 2>/dev/null || true
   sudo pkill -f stream_server.py 2>/dev/null || true
   pkill -f fill_version_params.py 2>/dev/null || true
   sleep 1
-  sudo /data/c3tools/c3touchd > /tmp/c3touchd.log 2>&1 &
-  python3 /data/stream_server.py > /tmp/stream_server.log 2>&1 &
+  sudo /data/openpilot/c3tools/c3touchd_ev2 > /tmp/c3touchd_ev2.log 2>&1 &
+  python3 /data/openpilot/c3tools/stream_server.py > /tmp/stream_server.log 2>&1 &
   # updated is disabled (would git-clean the custom build); its Updater* version
   # params are CLEAR_ON_MANAGER_START, so this daemon refills them from git every 15s.
   PYTHONPATH="/data/openpilot:/data/python_packages:/usr/local/venv/lib/python3.12/site-packages" \
