@@ -92,6 +92,14 @@ class VisualsLayout(Widget):
            "This displays what the car is currently doing, not what the planner is requesting."),
         None,
       ),
+      "SuperVideoStream": (
+        lambda: tr("Super Video (UI Streaming)"),
+        tr("Stream the driving screen to the toolbox app over the network and allow " +
+           "remote touch control." +
+           "<br>Capturing frames costs CPU even when nobody is watching, so turn this " +
+           "off if you do not use remote viewing."),
+        None,
+      ),
     }
     self._toggles = {}
     for param, (title, desc, callback) in self._toggle_defs.items():

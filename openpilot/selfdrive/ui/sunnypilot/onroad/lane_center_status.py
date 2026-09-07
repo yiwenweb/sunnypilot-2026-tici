@@ -34,7 +34,15 @@ COLOR_BG = rl.Color(0, 0, 0, 140)
 COLOR_TEXT = rl.Color(255, 255, 255, 220)
 
 DEAD_ZONE = 0.03   # same as controlsd lane center correction dead zone (m)
-FONT_SIZE = 30
+# HUD 尺寸: 相对初版整体放大 35% (30 -> 40)
+FONT_SIZE = 40
+DOT_R = 8.0        # 6.0 * 1.35
+PAD = 16           # 12 * 1.35  (dot 与文字 / 标题与数值之间)
+ROW_PAD = 16       # row_h 中字体外的行距
+BOX_PAD = 11       # 8 * 1.35   (框内上下留白)
+BOX_EXTRA = 22     # 16 * 1.35  (box_h 的额外高度)
+GAP = 22           # 16 * 1.35  (与 DM 圆圈的间距)
+RADIUS = 13        # 10 * 1.35  (圆角半径)
 
 
 class LaneCenterStatusRenderer(Widget):
@@ -124,23 +132,23 @@ class LaneCenterStatusRenderer(Widget):
     if not rows:
       return
 
-    row_h = FONT_SIZE + 12
+    row_h = FONT_SIZE + ROW_PAD
     box_w = 0.0
     for dot_c, title, value, value_c in rows:
-      dot_r = 6.0
+      dot_r = DOT_R
       title_sz = measure_text_cached(self._font_semi, title, FONT_SIZE)
       value_sz = measure_text_cached(self._font_regular, value, FONT_SIZE)
-      w = dot_r * 2 + 12 + title_sz.x + 12 + value_sz.x
+      w = dot_r * 2 + PAD + title_sz.x + PAD + value_sz.x
       box_w = max(box_w, w)
 
-    box_h = row_h * len(rows) + 16
+    box_h = row_h * len(rows) + BOX_EXTRA
 
     # Position: anchored to the driver-monitoring circle (bottom-left for LHD,
     # bottom-right for RHD), placed on its outside edge and vertically centered.
     offset = UI_BORDER_SIZE + BTN_SIZE // 2
     btn_cx = rect.x + (rect.width - offset if self._is_rhd else offset)
     btn_cy = rect.y + rect.height - offset
-    gap = 16.0
+    gap = GAP
     box_y = btn_cy - box_h / 2.0
     if self._is_rhd:
       box_x = btn_cx - BTN_SIZE / 2.0 - gap - box_w
@@ -148,16 +156,16 @@ class LaneCenterStatusRenderer(Widget):
       box_x = btn_cx + BTN_SIZE / 2.0 + gap
     box_x = max(box_x, rect.x + 10.0)
 
-    rl.draw_rectangle_rounded(rl.Rectangle(box_x, box_y, box_w, box_h), 0.25, 10, COLOR_BG)
+    rl.draw_rectangle_rounded(rl.Rectangle(box_x, box_y, box_w, box_h), 0.25, RADIUS, COLOR_BG)
 
-    y = box_y + 8
+    y = box_y + BOX_PAD
     for dot_c, title, value, value_c in rows:
-      dot_r = 6.0
+      dot_r = DOT_R
       title_sz = measure_text_cached(self._font_semi, title, FONT_SIZE)
-      tx = box_x + dot_r * 2 + 12
+      tx = box_x + dot_r * 2 + PAD
       # DrawCircle takes (int centerX, int centerY, float radius, Color): box_x/y are
       # floats, so cast or pyray raises "TypeError: an integer is required"
-      rl.draw_circle(int(box_x + dot_r), int(y + FONT_SIZE // 2 - 3), dot_r, dot_c)
+      rl.draw_circle(int(box_x + dot_r), int(y + FONT_SIZE // 2 - 4), dot_r, dot_c)
       rl.draw_text_ex(self._font_semi, title, rl.Vector2(tx, y), FONT_SIZE, 0, COLOR_TEXT)
-      rl.draw_text_ex(self._font_regular, value, rl.Vector2(tx + title_sz.x + 12, y), FONT_SIZE, 0, value_c)
+      rl.draw_text_ex(self._font_regular, value, rl.Vector2(tx + title_sz.x + PAD, y), FONT_SIZE, 0, value_c)
       y += row_h

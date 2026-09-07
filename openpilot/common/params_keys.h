@@ -247,6 +247,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LaneCenterCorrection", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"AutoCameraOffset", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"AutoCamOffsetLearned", {PERSISTENT, FLOAT, "0.0"}},
+    {"SuperVideoStream", {PERSISTENT | BACKUP, BOOL, "1"}},
     {"PlanplusControl", {PERSISTENT | BACKUP, FLOAT, "1.0"}},
 
     // mapd

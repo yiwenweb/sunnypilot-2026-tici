@@ -294,6 +294,13 @@ class GuiApplication(GuiApplicationExt):
     self._stream_thread = None
     self._stream_rt = None
     self._stream_frame = 0
+    # Runtime on/off switch for UI streaming, polled at 1 Hz from Params
+    # ("SuperVideoStream"). Shm/render-target/worker stay allocated so the user
+    # can flip the switch in settings and have it take effect immediately
+    # without a UI restart. Idle cost is zero: _stream_worker blocks on
+    # queue.get(timeout=1.0) whenever no frames are pushed.
+    self._stream_on = True
+    self._stream_on_t = 0.0
     self._window_close_requested = False
     self._nav_stack: list[object] = []
     self._nav_stack_ticks: list[Callable[[], None]] = []
@@ -471,6 +478,24 @@ class GuiApplication(GuiApplicationExt):
         continue
       except Exception:
         break
+
+  def _stream_switch_on(self) -> bool:
+    """Runtime switch for UI streaming, polled at 1 Hz.
+
+    Reads Params "SuperVideoStream" (default on). Any read failure (e.g. the key
+    is not registered in the compiled C++ params table yet) falls back to True so
+    an unbuilt tree keeps the previous always-on behaviour instead of silently
+    killing the stream.
+    """
+    now = time.monotonic()
+    if now - self._stream_on_t > 1.0:
+      self._stream_on_t = now
+      try:
+        from openpilot.common.params import Params
+        self._stream_on = Params().get_bool("SuperVideoStream")
+      except Exception:
+        self._stream_on = True
+    return self._stream_on
 
   def _stream_worker(self):
     """Background thread: RGBA (pre-scaled 1280x640) -> JPEG -> shared memory."""
@@ -797,7 +822,7 @@ class GuiApplication(GuiApplicationExt):
           self._ffmpeg_queue.put(data)  # Async write via background thread
           rl.unload_image(image)
 
-        if STREAM and self._stream_queue is not None:
+        if STREAM and self._stream_queue is not None and self._stream_switch_on():
           self._stream_frame += 1
           if self._stream_frame % max(1, int(self._target_fps / STREAM_FPS)) == 0:
             try:
