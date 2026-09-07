@@ -214,10 +214,11 @@ class Controls(ControlsExt):
           if abs(self._aco_learned) > 0.05:
             target = max(min(-self._aco_learned, cam_cur + 0.04), cam_cur - 0.04)  # step 4 cm
             target = max(min(target, 0.15), -0.15)                                  # clamp 15 cm
-            self.params.put("CameraOffset", f"{target:.2f}")
+            # CameraOffset 在 params_keys.h 注册为 FLOAT: 必须传 float, 传 str 会 TypeError
+            self.params.put("CameraOffset", float(round(target, 2)))
             cloudlog.info(f"auto camera offset: med={med:.3f} learned={self._aco_learned:.3f} -> CameraOffset={target:.2f}")
           if abs(self._aco_learned - self._aco_learned_saved) > 0.005:
-            self.params.put("AutoCamOffsetLearned", f"{self._aco_learned:.4f}")
+            self.params.put("AutoCamOffsetLearned", float(round(self._aco_learned, 4)))
             self._aco_learned_saved = self._aco_learned
           self._aco_samples.clear()
 

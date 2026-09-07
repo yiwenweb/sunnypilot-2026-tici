@@ -93,7 +93,9 @@ class LaneCenterStatusRenderer(Widget):
       self._lines_ok = False
 
     self._correcting = self._lc_enabled and self._lines_ok and abs(self._offset) > DEAD_ZONE
-    self._learning = self._aco_enabled and (abs(self._learned) > 0.005 or abs(self._learned - self._cam_offset) > 0.005)
+    # "学习中" = 还有未补偿完的残差 (learned 未收敛到 0)。收敛后 learned≈0 而
+    # CameraOffset≈-learned 非零, 旧条件 abs(learned - cam_offset) 恒真 → 永远显示学习中。
+    self._learning = self._aco_enabled and abs(self._learned) > 0.005
 
   def _render(self, rect: rl.Rectangle):
     if not (self._lc_enabled or self._aco_enabled):
