@@ -44,3 +44,13 @@ for cpu in 4 5 6 7; do
     echo 1 | sudo tee "/sys/devices/system/cpu/cpu${cpu}/online" > /dev/null 2>&1 || true
   fi
 done
+
+# --- Qt UI: force Adreno EGL (self-contained fix) ---------------------------
+# A glvnd libEGL.so.1.1.0 (2024) shadows AGNOS's original libEGL.so.1.0 ->
+# libEGL_adreno.so symlink, so EGL falls through to Mesa/llvmpipe and the Qt
+# 5.12 wayland-egl plugin segfaults (device stuck on boot logo). Preloading
+# the Adreno EGL restores the original GPU path (gbm backend msm_drm).
+# Verified on C3: ui runs 10s+ with zero EGL errors. Matches sp2025-gf.
+if [ -z "$LD_PRELOAD" ]; then
+  export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libEGL_adreno.so
+fi

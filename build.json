@@ -1,0 +1,11 @@
+{
+  "channel": "dev",
+  "openpilot": {
+    "version": "2026.003.000",
+    "release_notes": "BYD Tang DM 2018 port - sunnypilot-2026-qt (Qt UI, sp2025-gf port)",
+    "git_commit": "131669de4",
+    "git_origin": "https://github.com/yiwenweb/sunnypilot-2026-tici.git",
+    "git_commit_date": "2026-09-05",
+    "build_style": "local"
+  }
+}

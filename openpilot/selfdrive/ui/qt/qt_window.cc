@@ -1,6 +1,8 @@
 #include "openpilot/selfdrive/ui/qt/qt_window.h"
 
 #include <QDebug>
+#include <QThread>
+#include <QApplication>
 
 void setMainWindow(QWidget *w) {
   const float scale = util::getenv("SCALE", 1.0f);
@@ -17,10 +19,24 @@ void setMainWindow(QWidget *w) {
 
 #ifdef QCOM2
   QPlatformNativeInterface *native = QGuiApplication::platformNativeInterface();
-  wl_surface *s = reinterpret_cast<wl_surface*>(native->nativeResourceForWindow("surface", w->windowHandle()));
+
+  // The wayland surface may not exist yet right after show(); retry briefly
+  // before giving up, otherwise the buffer transform is silently skipped and
+  // the UI shows up rotated wrong on the comma three portrait panel.
+  wl_surface *s = nullptr;
+  for (int i = 0; i < 20 && s == nullptr; ++i) {
+    s = reinterpret_cast<wl_surface*>(native->nativeResourceForWindow("surface", w->windowHandle()));
+    if (s == nullptr) {
+      QThread::msleep(50);
+      QApplication::processEvents();
+    }
+  }
+  qWarning() << "setMainWindow: wl_surface =" << static_cast<const void*>(s);
   if (s != nullptr) {
     wl_surface_set_buffer_transform(s, WL_OUTPUT_TRANSFORM_270);
     wl_surface_commit(s);
+  } else {
+    qCritical() << "setMainWindow: no wl_surface after retries - buffer transform NOT applied";
   }
 
   w->setWindowState(Qt::WindowFullScreen);
