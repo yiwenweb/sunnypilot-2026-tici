@@ -30,7 +30,11 @@ from openpilot.system.ui.widgets import Widget
 COLOR_ACTIVE = rl.Color(0x2e, 0xcc, 0x71, 0xff)      # green: correcting / settled
 COLOR_IDLE = rl.Color(0x91, 0x9b, 0x95, 0xff)         # grey: armed, centered
 COLOR_LEARN = rl.Color(0x4a, 0xa8, 0xea, 0xff)        # blue: learning
-COLOR_BG = rl.Color(0, 0, 0, 140)
+# Background is intentionally NOT drawn: the HUD sits on top of the road camera
+# view and a filled capsule blocked it. Text legibility comes from the drop
+# shadow instead (see SHADOW_* below).
+COLOR_SHADOW = rl.Color(0, 0, 0, 160)
+SHADOW_OFFSET = 2
 COLOR_TEXT = rl.Color(255, 255, 255, 220)
 
 DEAD_ZONE = 0.03   # same as controlsd lane center correction dead zone (m)
@@ -42,7 +46,6 @@ ROW_PAD = 16       # row_h 中字体外的行距
 BOX_PAD = 11       # 8 * 1.35   (框内上下留白)
 BOX_EXTRA = 22     # 16 * 1.35  (box_h 的额外高度)
 GAP = 22           # 16 * 1.35  (与 DM 圆圈的间距)
-RADIUS = 13        # 10 * 1.35  (圆角半径)
 
 
 class LaneCenterStatusRenderer(Widget):
@@ -156,16 +159,21 @@ class LaneCenterStatusRenderer(Widget):
       box_x = btn_cx + BTN_SIZE / 2.0 + gap
     box_x = max(box_x, rect.x + 10.0)
 
-    rl.draw_rectangle_rounded(rl.Rectangle(box_x, box_y, box_w, box_h), 0.25, RADIUS, COLOR_BG)
+    # No background fill - transparent, the camera view shows through.
 
     y = box_y + BOX_PAD
     for dot_c, title, value, value_c in rows:
       dot_r = DOT_R
       title_sz = measure_text_cached(self._font_semi, title, FONT_SIZE)
       tx = box_x + dot_r * 2 + PAD
+      vx = tx + title_sz.x + PAD
       # DrawCircle takes (int centerX, int centerY, float radius, Color): box_x/y are
       # floats, so cast or pyray raises "TypeError: an integer is required"
+      rl.draw_circle(int(box_x + dot_r) + SHADOW_OFFSET, int(y + FONT_SIZE // 2 - 4) + SHADOW_OFFSET, dot_r, COLOR_SHADOW)
       rl.draw_circle(int(box_x + dot_r), int(y + FONT_SIZE // 2 - 4), dot_r, dot_c)
+      # drop shadow keeps the text readable now that the capsule background is gone
+      rl.draw_text_ex(self._font_semi, title, rl.Vector2(tx + SHADOW_OFFSET, y + SHADOW_OFFSET), FONT_SIZE, 0, COLOR_SHADOW)
+      rl.draw_text_ex(self._font_regular, value, rl.Vector2(vx + SHADOW_OFFSET, y + SHADOW_OFFSET), FONT_SIZE, 0, COLOR_SHADOW)
       rl.draw_text_ex(self._font_semi, title, rl.Vector2(tx, y), FONT_SIZE, 0, COLOR_TEXT)
-      rl.draw_text_ex(self._font_regular, value, rl.Vector2(tx + title_sz.x + PAD, y), FONT_SIZE, 0, value_c)
+      rl.draw_text_ex(self._font_regular, value, rl.Vector2(vx, y), FONT_SIZE, 0, value_c)
       y += row_h
