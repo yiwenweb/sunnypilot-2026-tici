@@ -14,6 +14,8 @@
 
 namespace {
   const std::string SUNNYLINK_CONSENT_VERSION = "1.0";
+  // must match terms_version_sp in openpilot/common/version.py
+  const std::string TERMS_VERSION_SP = "1.0";
   const std::string SUNNYLINK_CONSENT_DECLINED = "-1";
 }
 
@@ -275,6 +277,7 @@ OnboardingWindow::OnboardingWindow(QWidget *parent) : QStackedWidget(parent) {
   addWidget(terms);
   connect(terms, &TermsPage::acceptedTerms, [=]() {
     params.put("HasAcceptedTerms", current_terms_version);
+    params.put("HasAcceptedTermsSP", TERMS_VERSION_SP);
     accepted_terms = true;
     updateActiveScreen();
   });
