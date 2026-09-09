@@ -46,7 +46,10 @@ qt_src = ["main.cc", "ui.cc", "qt/sidebar.cc", "qt/body.cc",
           "qt/offroad/software_settings.cc", "qt/offroad/developer_panel.cc", "qt/offroad/onboarding.cc",
           "qt/offroad/driverview.cc", "qt/offroad/experimental_mode.cc", "qt/offroad/firehose.cc",
           "qt/onroad/onroad_home.cc", "qt/onroad/annotated_camera.cc", "qt/onroad/model.cc",
-          "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/driver_monitoring.cc", "qt/onroad/hud.cc"] + sp_qt_src
+          "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/driver_monitoring.cc", "qt/onroad/hud.cc",
+          # 超级视频：msm_vidc 硬编码推流（复用 loggerd 的 V4LEncoder，packet_callback 模式）
+          "../../system/loggerd/encoder/v4l_encoder.cc",
+          "../../system/loggerd/encoder/encoder.cc"] + sp_qt_src
 
 # build translation files
 with open(File("#openpilot/selfdrive/ui/translations/languages.json").abspath) as f:

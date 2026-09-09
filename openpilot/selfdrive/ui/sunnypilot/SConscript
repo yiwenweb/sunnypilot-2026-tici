@@ -48,6 +48,7 @@ qt_src = [
   "sunnypilot/qt/onroad/lane_center_status.cc",
   "sunnypilot/qt/onroad/model.cc",
   "sunnypilot/qt/onroad/onroad_home.cc",
+  "sunnypilot/qt/stream/supervideo.cc",
 ]
 
 lateral_panel_qt_src = [

@@ -9,6 +9,7 @@
 
 #ifdef SUNNYPILOT
 #include "openpilot/selfdrive/ui/sunnypilot/qt/window.h"
+#include "openpilot/selfdrive/ui/sunnypilot/qt/stream/supervideo.h"
 #define MainWindow MainWindowSP
 #else
 #include "openpilot/selfdrive/ui/qt/qt_window.h"
@@ -34,5 +35,10 @@ int main(int argc, char *argv[]) {
   MainWindow w;
   setMainWindow(&w);
   a.installEventFilter(&w);
+#ifdef SUNNYPILOT
+  // 超级视频：msm_vidc 硬编码 H.264 推流（SuperVideoStream 参数控制，默认关）
+  SuperVideoStreamer *supervideo = new SuperVideoStreamer(&w, &w);
+  Q_UNUSED(supervideo);
+#endif
   return a.exec();
 }

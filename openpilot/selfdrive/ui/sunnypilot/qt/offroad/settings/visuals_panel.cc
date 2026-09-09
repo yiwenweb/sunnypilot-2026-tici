@@ -104,6 +104,13 @@ VisualsPanel::VisualsPanel(QWidget *parent) : QWidget(parent) {
       "",
       false,
     },
+    {
+      "SuperVideoStream",
+      tr("Super Video Stream (Hardware H.264)"),
+      tr("Stream the C3 screen to the toolbox app over the network using the hardware encoder (H.264, 30fps). Touch on the app screen is mirrored back to the device. Enable only when the device is connected to your home WiFi."),
+      "",
+      false,
+    },
   };
 
   // Add regular toggles first

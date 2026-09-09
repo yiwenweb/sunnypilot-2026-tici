@@ -1,0 +1,252 @@
+#include "selfdrive/ui/sunnypilot/qt/stream/supervideo.h"
+
+#include <unistd.h>
+
+#include <cstring>
+
+#include <QImage>
+
+#include "common/swaglog.h"
+#include "common/timing.h"
+#include "common/util.h"
+
+namespace {
+  constexpr int STREAM_PORT = 8082;
+  constexpr int STREAM_FPS = 30;
+  constexpr int STREAM_WIDTH = 1280;
+  constexpr int STREAM_HEIGHT = 640;
+  constexpr int NV12_SIZE = STREAM_WIDTH * STREAM_HEIGHT * 3 / 2;
+  constexpr int MAX_IN_FLIGHT = 6;       // 输入缓冲 9，留余量防阻塞 UI 线程
+  const char *VENC_DEVICE = "/dev/v4l/by-path/platform-aa00000.qcom_vidc-video-index1";
+}
+
+SuperVideoStreamer::SuperVideoStreamer(QWidget *source_widget, QObject *parent)
+    : QObject(parent), src(source_widget) {
+  for (auto &b : nv12_bufs) b = VisionBuf{};
+
+  server = new QTcpServer(this);
+  connect(server, &QTcpServer::newConnection, this, &SuperVideoStreamer::onNewConnection);
+
+  param_timer = new QTimer(this);
+  param_timer->setSingleShot(false);
+  param_timer->start(1000);              // 1Hz 参数轮询，改开关立即生效
+  connect(param_timer, &QTimer::timeout, this, &SuperVideoStreamer::pollParam);
+
+  frame_timer = new QTimer(this);
+  frame_timer->setTimerType(Qt::CoarseTimer);
+  frame_timer->setInterval(1000 / STREAM_FPS);
+  connect(frame_timer, &QTimer::timeout, this, &SuperVideoStreamer::captureFrame);
+
+  pollParam();
+}
+
+SuperVideoStreamer::~SuperVideoStreamer() {
+  stopStreaming();
+}
+
+void SuperVideoStreamer::pollParam() {
+  bool want = params.getBool("SuperVideoStream");
+  if (want == enabled) return;
+  enabled = want;
+  if (enabled) {
+    startStreaming();
+  } else {
+    stopStreaming();
+  }
+}
+
+void SuperVideoStreamer::startStreaming() {
+  if (streaming) return;
+  if (access(VENC_DEVICE, F_OK) != 0) {
+    LOGE("supervideo: hardware encoder device not found, streaming disabled");
+    enabled = false;
+    return;
+  }
+  if (!server->listen(QHostAddress::Any, STREAM_PORT)) {
+    LOGE("supervideo: failed to listen on port %d", STREAM_PORT);
+    enabled = false;
+    return;
+  }
+  openEncoder();
+  if (!encoder) {
+    server->close();
+    enabled = false;
+    return;
+  }
+  in_flight = 0;
+  frame_timer->start();
+  streaming = true;
+  LOGW("supervideo: streaming started (%dx%d @ %d fps, tcp:%d)", STREAM_WIDTH, STREAM_HEIGHT, STREAM_FPS, STREAM_PORT);
+}
+
+void SuperVideoStreamer::stopStreaming() {
+  if (!streaming) return;
+  frame_timer->stop();
+  for (auto *c : clients) {
+    c->disconnectFromServer();
+  }
+  clients.clear();
+  server->close();
+  closeEncoder();
+  std::lock_guard<std::mutex> lock(pkt_mutex);
+  pending_data.clear();
+  streaming = false;
+  LOGW("supervideo: streaming stopped");
+}
+
+void SuperVideoStreamer::openEncoder() {
+  try {
+    EncoderInfo info = {};
+    info.publish_name = "SuperVideoStream";
+    info.filename = "supervideo.h264";
+    info.is_live = true;
+    info.frame_width = STREAM_WIDTH;
+    info.frame_height = STREAM_HEIGHT;
+    info.fps = STREAM_FPS;
+    info.get_settings = [](int) { return EncoderSettings::StreamEncoderSettings(); };
+    // 这些函数仅在 publisher_publish 路径使用；本类始终提供 packet_callback，
+    // 编码数据不会发布到 cereal（不污染行车记录）。
+    info.get_encode_data_func = &cereal::Event::Reader::getQNarrowRoadEncodeData;
+    info.set_encode_idx_func = &cereal::Event::Builder::setQNarrowRoadEncodeIdx;
+    info.init_encode_data_func = &cereal::Event::Builder::initQNarrowRoadEncodeData;
+
+    encoder = new V4LEncoder(info, STREAM_WIDTH, STREAM_HEIGHT,
+                             {.packet_callback = [this](uint8_t *d, size_t s, int64_t ts, bool config, bool key) {
+                                packetHandler(d, s, ts, config, key);
+                              },
+                              .input_format = V4L2_PIX_FMT_NV12,
+                              .input_done_callback = [this](VisionBuf *) { in_flight--; },
+                              .max_performance = true});
+    encoder->encoder_open();
+
+    if (!nv12_allocated) {
+      for (auto &b : nv12_bufs) b.allocate(NV12_SIZE);
+      nv12_allocated = true;
+    }
+  } catch (const std::exception &e) {
+    LOGE("supervideo: encoder init failed: %s", e.what());
+    closeEncoder();
+  }
+}
+
+void SuperVideoStreamer::closeEncoder() {
+  if (encoder) {
+    encoder->encoder_close();
+    delete encoder;
+    encoder = nullptr;
+  }
+}
+
+void SuperVideoStreamer::captureFrame() {
+  if (!streaming || !encoder || !src) return;
+  if (in_flight >= MAX_IN_FLIGHT) return;  // 硬件端积压，丢帧不阻塞 UI
+
+  // 1) 抓帧（软件光栅 UI，grab 为内存级渲染拷贝）
+  QPixmap pm = src->grab();
+  if (pm.isNull()) return;
+  QImage img = pm.toImage().scaled(STREAM_WIDTH, STREAM_HEIGHT, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+  if (img.isNull()) return;
+  if (img.format() != QImage::Format_ARGB32 && img.format() != QImage::Format_RGB32) {
+    img = img.convertToFormat(QImage::Format_RGB32);
+  }
+
+  // 2) RGB32 → NV12
+  VisionBuf &vb = nv12_bufs[cur_buf];
+  cur_buf = (cur_buf + 1) % 2;
+  rgbToNv12(img, (uint8_t *)vb.addr, STREAM_WIDTH, STREAM_HEIGHT);
+  vb.width = STREAM_WIDTH;
+  vb.height = STREAM_HEIGHT;
+  vb.stride = STREAM_WIDTH;
+
+  // 3) 喂硬件编码器
+  int64_t ts_eof = nanos_since_boot();
+  VisionIpcBufExtra extra = {};
+  extra.timestamp_eof = ts_eof;
+  in_flight++;
+  encoder->encode_frame(&vb, &extra);
+}
+
+void SuperVideoStreamer::rgbToNv12(const QImage &img, uint8_t *nv12, int width, int height) {
+  uint8_t *y_plane = nv12;
+  uint8_t *uv_plane = nv12 + width * height;
+  const int uv_stride = width;
+
+  for (int row = 0; row < height; ++row) {
+    const QRgb *line = reinterpret_cast<const QRgb *>(img.constScanLine(row));
+    uint8_t *y_row = y_plane + row * width;
+    for (int col = 0; col < width; ++col) {
+      const QRgb &p = line[col];
+      y_row[col] = (uint8_t)((77 * qRed(p) + 150 * qGreen(p) + 29 * qBlue(p)) >> 8);
+    }
+  }
+  for (int row = 0; row < height; row += 2) {
+    const QRgb *l0 = reinterpret_cast<const QRgb *>(img.constScanLine(row));
+    const QRgb *l1 = reinterpret_cast<const QRgb *>(img.constScanLine(row + 1));
+    uint8_t *uv_row = uv_plane + (row / 2) * uv_stride;
+    for (int col = 0; col < width; col += 2) {
+      // 2x2 块均值
+      int r = (qRed(l0[col]) + qRed(l0[col + 1]) + qRed(l1[col]) + qRed(l1[col + 1])) >> 2;
+      int g = (qGreen(l0[col]) + qGreen(l0[col + 1]) + qGreen(l1[col]) + qGreen(l1[col + 1])) >> 2;
+      int b = (qBlue(l0[col]) + qBlue(l0[col + 1]) + qBlue(l1[col]) + qBlue(l1[col + 1])) >> 2;
+      int u = ((-43 * r - 85 * g + 128 * b) >> 8) + 128;
+      int v = ((128 * r - 107 * g - 21 * b) >> 8) + 128;
+      uv_row[col] = (uint8_t)std::clamp(u, 0, 255);
+      uv_row[col + 1] = (uint8_t)std::clamp(v, 0, 255);
+    }
+  }
+}
+
+void SuperVideoStreamer::packetHandler(uint8_t *data, size_t size, int64_t ts, bool config, bool keyframe) {
+  (void)keyframe;
+  std::lock_guard<std::mutex> lock(pkt_mutex);
+  if (config) {
+    // SPS/PPS：缓存并即时下发（encoder_open 后第一个包）
+    pending_config.assign((const char *)data, size);
+    pending_data.append((const char *)data, size);
+  } else {
+    pending_data.append((const char *)data, size);
+  }
+  if (pending_data.size() > 4 * 1024 * 1024) {
+    pending_data.clear();                // 无客户端时防内存无限增长
+  }
+  QMetaObject::invokeMethod(this, "flushClients", Qt::QueuedConnection);
+}
+
+void SuperVideoStreamer::onNewConnection() {
+  while (server->hasPendingConnections()) {
+    QTcpSocket *c = server->nextPendingConnection();
+    if (!c) break;
+    c->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+    clients.push_back(c);
+    connect(c, &QTcpSocket::disconnected, this, &SuperVideoStreamer::onClientDisconnected);
+    LOGW("supervideo: client connected (%d total)", (int)clients.size());
+    // 新客户端先补一份 SPS/PPS + 立刻请求关键帧，避免等下一个 GOP
+    {
+      std::lock_guard<std::mutex> lock(pkt_mutex);
+      c->write(pending_config.data(), pending_config.size());
+    }
+    if (encoder) encoder->request_keyframe();
+  }
+}
+
+void SuperVideoStreamer::onClientDisconnected() {
+  clients.erase(std::remove_if(clients.begin(), clients.end(),
+                               [](QTcpSocket *c) { return c->state() == QAbstractSocket::UnconnectedState; }),
+                clients.end());
+}
+
+void SuperVideoStreamer::flushClients() {
+  std::string data;
+  {
+    std::lock_guard<std::mutex> lock(pkt_mutex);
+    data.swap(pending_data);
+  }
+  if (data.empty() || clients.empty()) return;
+
+  QByteArray chunk(data.data(), (int)data.size());
+  for (auto *c : clients) {
+    if (c->state() == QAbstractSocket::ConnectedState && c->bytesToWrite() < 2 * 1024 * 1024) {
+      c->write(chunk);
+    }
+  }
+}
