@@ -100,7 +100,13 @@ Params::~Params() {
   if (future.valid()) {
     future.wait();
   }
-  assert(queue.empty());
+  // Drain pending non-blocking writes instead of asserting: a putNonBlocking()
+  // issued after the async writer finished leaves the queue non-empty here,
+  // which used to abort() the process on shutdown (core dump).
+  std::pair<std::string, std::string> pending;
+  while (queue.try_pop(pending, 0)) {
+    put(pending.first, pending.second);
+  }
 }
 
 std::vector<std::string> Params::allKeys(ParamKeyFlag flag) const {
