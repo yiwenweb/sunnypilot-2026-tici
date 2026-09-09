@@ -2,7 +2,10 @@
 
 #include <unistd.h>
 
+#include <chrono>
 #include <cstring>
+
+#include <algorithm>
 
 #include <QImage>
 
@@ -12,11 +15,11 @@
 
 namespace {
   constexpr int STREAM_PORT = 8082;
-  constexpr int STREAM_FPS = 30;
-  constexpr int STREAM_WIDTH = 1280;
+  constexpr int STREAM_FPS = 24;         // UI 线程只承担 grab；24fps 给事件循环留足余量
+  constexpr int STREAM_WIDTH = 1280;     // VENUS 要求宽高 128 对齐：1280/640 均满足
   constexpr int STREAM_HEIGHT = 640;
   constexpr int NV12_SIZE = STREAM_WIDTH * STREAM_HEIGHT * 3 / 2;
-  constexpr int MAX_IN_FLIGHT = 6;       // 输入缓冲 9，留余量防阻塞 UI 线程
+  constexpr int MAX_IN_FLIGHT = 6;       // 输入缓冲 9，留余量
   const char *VENC_DEVICE = "/dev/v4l/by-path/platform-aa00000.qcom_vidc-video-index1";
 }
 
@@ -42,6 +45,17 @@ SuperVideoStreamer::SuperVideoStreamer(QWidget *source_widget, QObject *parent)
 
 SuperVideoStreamer::~SuperVideoStreamer() {
   stopStreaming();
+  if (worker_started) {
+    quit_worker = true;
+    want_run = false;
+    frame_cv.notify_all();
+    if (worker.joinable()) worker.join();
+    // worker 已退出，缓冲只有 worker 用过，安全释放
+    if (nv12_allocated) {
+      for (auto &b : nv12_bufs) b.free();
+      nv12_allocated = false;
+    }
+  }
 }
 
 void SuperVideoStreamer::pollParam() {
@@ -67,31 +81,111 @@ void SuperVideoStreamer::startStreaming() {
     enabled = false;
     return;
   }
-  openEncoder();
-  if (!encoder) {
-    server->close();
-    enabled = false;
-    return;
-  }
-  in_flight = 0;
-  frame_timer->start();
   streaming = true;
+  in_flight = 0;
+  want_run = true;                       // 编码器由 worker 线程异步打开（阻塞 ioctl 不碰 UI）
+  if (!worker_started) {
+    quit_worker = false;
+    worker = std::thread(&SuperVideoStreamer::workerLoop, this);
+    worker_started = true;
+  }
+  frame_cv.notify_all();
+  frame_timer->start();
   LOGW("supervideo: streaming started (%dx%d @ %d fps, tcp:%d)", STREAM_WIDTH, STREAM_HEIGHT, STREAM_FPS, STREAM_PORT);
 }
 
 void SuperVideoStreamer::stopStreaming() {
   if (!streaming) return;
   frame_timer->stop();
+  want_run = false;                      // worker 自己关编码器（close 里的 ioctl 可能阻塞，不上 UI 线程）
+  frame_cv.notify_all();
   for (auto *c : clients) {
     c->disconnectFromHost();
   }
   clients.clear();
   server->close();
-  closeEncoder();
   std::lock_guard<std::mutex> lock(pkt_mutex);
   pending_data.clear();
   streaming = false;
   LOGW("supervideo: streaming stopped");
+}
+
+void SuperVideoStreamer::onEncoderFailed() {
+  LOGE("supervideo: encoder open failed in worker thread, disabling streaming");
+  stopStreaming();
+  enabled = false;
+}
+
+// ---------------- worker 线程 ----------------
+
+void SuperVideoStreamer::workerLoop() {
+  while (!quit_worker) {
+    const bool run = want_run;
+
+    if (run && !encoder) {
+      openEncoder();                     // 阻塞 ioctl 在 worker，UI 线程不受影响
+      if (!encoder) {
+        QMetaObject::invokeMethod(this, "onEncoderFailed", Qt::QueuedConnection);
+        // 等状态变化再重试，避免疯狂重开 msm_vidc 会话
+        std::unique_lock<std::mutex> lk(frame_mutex);
+        frame_cv.wait_for(lk, std::chrono::seconds(3),
+                          [&] { return quit_worker.load() || want_run.load() != run; });
+        continue;
+      }
+      in_flight = 0;
+    } else if (!run && encoder) {
+      closeEncoder();
+    }
+
+    if (!encoder) {
+      // 空闲：等启动/退出信号
+      std::unique_lock<std::mutex> lk(frame_mutex);
+      frame_cv.wait_for(lk, std::chrono::milliseconds(300),
+                        [&] { return quit_worker.load() || (want_run.load() && !encoder); });
+      continue;
+    }
+
+    QImage img;
+    {
+      std::unique_lock<std::mutex> lk(frame_mutex);
+      if (frame_q.empty()) {
+        frame_cv.wait_for(lk, std::chrono::milliseconds(200),
+                          [&] { return quit_worker.load() || !frame_q.empty() || !want_run.load(); });
+        continue;                        // 回循环头处理 run/quit 状态
+      }
+      img = std::move(frame_q.front());
+      frame_q.pop_front();
+    }
+
+    // 缩放 + RGB32 统一（QImage 隐式共享，worker 独占此副本）
+    QImage scaled = img.scaled(STREAM_WIDTH, STREAM_HEIGHT, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    if (scaled.isNull()) continue;
+    if (scaled.format() != QImage::Format_ARGB32 && scaled.format() != QImage::Format_RGB32) {
+      scaled = scaled.convertToFormat(QImage::Format_RGB32);
+    }
+
+    if (in_flight >= MAX_IN_FLIGHT) continue;  // 硬件积压，丢帧
+
+    VisionBuf &vb = nv12_bufs[cur_buf];
+    cur_buf = (cur_buf + 1) % 2;
+    rgbToNv12(scaled, (uint8_t *)vb.addr, STREAM_WIDTH, STREAM_HEIGHT);
+    vb.width = STREAM_WIDTH;
+    vb.height = STREAM_HEIGHT;
+    vb.stride = STREAM_WIDTH;
+
+    int64_t ts_eof = nanos_since_boot();
+    VisionIpcBufExtra extra = {};
+    extra.timestamp_eof = ts_eof;
+    in_flight++;
+    {
+      std::lock_guard<std::mutex> lk(enc_mutex);
+      if (encoder) encoder->encode_frame(&vb, &extra);
+    }
+  }
+
+  // 退出：编码器必须在 worker 自己关（close 里的 ioctl 不上 UI 线程）
+  std::lock_guard<std::mutex> lk(enc_mutex);
+  closeEncoder();
 }
 
 void SuperVideoStreamer::openEncoder() {
@@ -118,6 +212,7 @@ void SuperVideoStreamer::openEncoder() {
                               .input_done_callback = [this](VisionBuf *) { in_flight--; },
                               .max_performance = true});
     encoder->encoder_open();
+    encoder_ready = true;
 
     if (!nv12_allocated) {
       for (auto &b : nv12_bufs) b.allocate(NV12_SIZE);
@@ -130,6 +225,7 @@ void SuperVideoStreamer::openEncoder() {
 }
 
 void SuperVideoStreamer::closeEncoder() {
+  encoder_ready = false;
   if (encoder) {
     encoder->encoder_close();
     delete encoder;
@@ -137,33 +233,23 @@ void SuperVideoStreamer::closeEncoder() {
   }
 }
 
-void SuperVideoStreamer::captureFrame() {
-  if (!streaming || !encoder || !src) return;
-  if (in_flight >= MAX_IN_FLIGHT) return;  // 硬件端积压，丢帧不阻塞 UI
+// ---------------- UI 线程抓帧 ----------------
 
-  // 1) 抓帧（软件光栅 UI，grab 为内存级渲染拷贝）
+void SuperVideoStreamer::captureFrame() {
+  if (!streaming || !src) return;
+
+  // UI 线程只做这一件事：抓窗口 → 转 QImage → 入队。其余全部在 worker。
   QPixmap pm = src->grab();
   if (pm.isNull()) return;
-  QImage img = pm.toImage().scaled(STREAM_WIDTH, STREAM_HEIGHT, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+  QImage img = pm.toImage();
   if (img.isNull()) return;
-  if (img.format() != QImage::Format_ARGB32 && img.format() != QImage::Format_RGB32) {
-    img = img.convertToFormat(QImage::Format_RGB32);
+
+  {
+    std::lock_guard<std::mutex> lk(frame_mutex);
+    if (frame_q.size() >= MAX_QUEUED_FRAMES) return;  // worker 积压，丢帧不阻塞 UI
+    frame_q.push_back(std::move(img));
   }
-
-  // 2) RGB32 → NV12
-  VisionBuf &vb = nv12_bufs[cur_buf];
-  cur_buf = (cur_buf + 1) % 2;
-  rgbToNv12(img, (uint8_t *)vb.addr, STREAM_WIDTH, STREAM_HEIGHT);
-  vb.width = STREAM_WIDTH;
-  vb.height = STREAM_HEIGHT;
-  vb.stride = STREAM_WIDTH;
-
-  // 3) 喂硬件编码器
-  int64_t ts_eof = nanos_since_boot();
-  VisionIpcBufExtra extra = {};
-  extra.timestamp_eof = ts_eof;
-  in_flight++;
-  encoder->encode_frame(&vb, &extra);
+  frame_cv.notify_one();
 }
 
 void SuperVideoStreamer::rgbToNv12(const QImage &img, uint8_t *nv12, int width, int height) {
@@ -196,8 +282,11 @@ void SuperVideoStreamer::rgbToNv12(const QImage &img, uint8_t *nv12, int width, 
   }
 }
 
+// ---------------- 编码输出 → 客户端 ----------------
+
+// 由 V4LEncoder 的 dequeue 线程回调（非 UI 线程）
 void SuperVideoStreamer::packetHandler(uint8_t *data, size_t size, int64_t ts, bool config, bool keyframe) {
-  (void)keyframe;
+  (void)ts; (void)keyframe;
   std::lock_guard<std::mutex> lock(pkt_mutex);
   if (config) {
     // SPS/PPS：缓存并即时下发（encoder_open 后第一个包）
@@ -220,12 +309,18 @@ void SuperVideoStreamer::onNewConnection() {
     clients.push_back(c);
     connect(c, &QTcpSocket::disconnected, this, &SuperVideoStreamer::onClientDisconnected);
     LOGW("supervideo: client connected (%d total)", (int)clients.size());
-    // 新客户端先补一份 SPS/PPS + 立刻请求关键帧，避免等下一个 GOP
+    // 新客户端先补一份 SPS/PPS，避免等下一个 GOP
     {
       std::lock_guard<std::mutex> lock(pkt_mutex);
-      c->write(pending_config.data(), pending_config.size());
+      if (!pending_config.empty()) {
+        c->write(pending_config.data(), pending_config.size());
+      }
     }
-    if (encoder) encoder->request_keyframe();
+    // 请求关键帧：try_lock 拿不到（worker 正在开/关编码器）就跳过，绝不阻塞 UI
+    if (encoder_ready) {
+      std::unique_lock<std::mutex> lk(enc_mutex, std::try_to_lock);
+      if (lk.owns_lock() && encoder) encoder->request_keyframe();
+    }
   }
 }
 
