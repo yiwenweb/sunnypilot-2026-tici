@@ -89,6 +89,29 @@ function launch {
   # write tmux scrollback to a file
   tmux capture-pane -pq -S-1000 > /tmp/launch_log
 
+# Refresh version params for UI (updater is disabled) — manager clears
+# CLEAR_ON_MANAGER_START params late in its init, so retry-write until it sticks.
+(
+  cd "$DIR"
+  _V=$(cat openpilot/sunnypilot/common/version.h 2>/dev/null | cut -d'"' -f2)
+  _B=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  _C=$(git rev-parse HEAD 2>/dev/null | cut -c1-7)
+  _D=$(git show -s --format=%ct HEAD 2>/dev/null | xargs -I{} date -d @{} "+%b %d" 2>/dev/null)
+  if [ -n "$_V" ] && [ -n "$_B" ] && [ -n "$_C" ]; then
+    _DESC="$_V / $_B / $_C / $_D"
+    for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18; do
+      sleep 10
+      if [ "$(cat /data/params/d/UpdaterCurrentDescription 2>/dev/null)" = "$_DESC" ]; then
+        break
+      fi
+      echo -n "$_DESC" > /data/params/d/UpdaterCurrentDescription
+      echo -n "$_B" > /data/params/d/UpdaterTargetBranch
+      echo -n "idle" > /data/params/d/UpdaterState
+      echo -n "0" > /data/params/d/UpdaterFetchAvailable
+    done
+  fi
+) 2>/dev/null &
+
   # start manager
   cd openpilot/system/manager
   if [ ! -f $DIR/prebuilt ]; then
