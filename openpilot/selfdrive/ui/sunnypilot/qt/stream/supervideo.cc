@@ -26,6 +26,7 @@ namespace {
 SuperVideoStreamer::SuperVideoStreamer(QWidget *source_widget, QObject *parent)
     : QObject(parent), src(source_widget) {
   for (auto &b : nv12_bufs) b = VisionBuf{};
+  for (auto &busy : nv12_busy) busy = false;
 
   server = new QTcpServer(this);
   connect(server, &QTcpServer::newConnection, this, &SuperVideoStreamer::onNewConnection);
@@ -166,8 +167,14 @@ void SuperVideoStreamer::workerLoop() {
 
     if (in_flight >= MAX_IN_FLIGHT) continue;  // 硬件积压，丢帧
 
-    VisionBuf &vb = nv12_bufs[cur_buf];
-    cur_buf = (cur_buf + 1) % 2;
+    // 从池里挑一个硬件已归还的 NV12 缓冲（USERPTR 交给 DMA 后未归前绝不能覆写）
+    int slot = -1;
+    for (int i = 0; i < BUF_IN_COUNT; ++i) {
+      if (!nv12_busy[i] && nv12_busy[i].compare_exchange_strong(false, true)) { slot = i; break; }
+    }
+    if (slot < 0) continue;                    // 理论不发生（MAX_IN_FLIGHT < BUF_IN_COUNT），防御
+
+    VisionBuf &vb = nv12_bufs[slot];
     rgbToNv12(scaled, (uint8_t *)vb.addr, STREAM_WIDTH, STREAM_HEIGHT);
     vb.width = STREAM_WIDTH;
     vb.height = STREAM_HEIGHT;
@@ -179,7 +186,12 @@ void SuperVideoStreamer::workerLoop() {
     in_flight++;
     {
       std::lock_guard<std::mutex> lk(enc_mutex);
-      if (encoder) encoder->encode_frame(&vb, &extra);
+      if (encoder) {
+        encoder->encode_frame(&vb, &extra);
+      } else {
+        nv12_busy[slot] = false;               // 竞态兜底：encoder 正在被关闭
+        in_flight--;
+      }
     }
   }
 
@@ -209,7 +221,13 @@ void SuperVideoStreamer::openEncoder() {
                                 packetHandler(d, s, ts, config, key);
                               },
                               .input_format = V4L2_PIX_FMT_NV12,
-                              .input_done_callback = [this](VisionBuf *) { in_flight--; },
+                              .input_done_callback = [this](VisionBuf *b) {
+                                // dequeue 线程：硬件已归还该输入缓冲，标记可复用
+                                for (int i = 0; i < BUF_IN_COUNT; ++i) {
+                                  if (&nv12_bufs[i] == b) { nv12_busy[i] = false; break; }
+                                }
+                                in_flight--;
+                              },
                               .max_performance = true});
     encoder->encoder_open();
     encoder_ready = true;
@@ -238,11 +256,24 @@ void SuperVideoStreamer::closeEncoder() {
 void SuperVideoStreamer::captureFrame() {
   if (!streaming || !src) return;
 
+  QElapsedTimer t;
+  t.start();
+
   // UI 线程只做这一件事：抓窗口 → 转 QImage → 入队。其余全部在 worker。
   QPixmap pm = src->grab();
   if (pm.isNull()) return;
   QImage img = pm.toImage();
   if (img.isNull()) return;
+
+  // UI 线程预算保护：grab 耗时 EMA 超过间隔的 60% 就自动降速（下限 ~10fps），
+  // 宁可流帧率低一点，也绝不让抓帧拖死 UI 事件循环
+  double ms = (double)t.elapsed();
+  grab_ema_ms = (grab_ema_ms == 0) ? ms : (grab_ema_ms * 0.9 + ms * 0.1);
+  int cur = frame_timer->interval();
+  if (grab_ema_ms > cur * 0.6 && cur < 100) {
+    frame_timer->setInterval(std::min(100, cur + 8));
+    LOGW("supervideo: grab %.1fms, back off to %dms/frame", grab_ema_ms, frame_timer->interval());
+  }
 
   {
     std::lock_guard<std::mutex> lk(frame_mutex);
