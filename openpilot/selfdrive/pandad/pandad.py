@@ -101,16 +101,30 @@ def main() -> None:
     cloudlog.exception("pandad.uncaught_exception")
 
   count = 0
+  first_run = True
+  no_internal_panda_count = 0
   while not do_exit:
     try:
-      cloudlog.event("pandad.flash_and_connect", count=count)
-      if (count % 2) == 0:
-        HARDWARE.reset_internal_panda()
-        Panda.wait_for_panda(None, timeout=10)
-      else:
-        HARDWARE.recover_internal_panda()
-        Panda.wait_for_dfu(None, timeout=10)
       count += 1
+      cloudlog.event("pandad.flash_and_connect", count=count, no_internal_panda_count=no_internal_panda_count)
+
+      # 0.9.8-style startup: try the normal USB path first, GPIO reset / DFU
+      # recovery are only fallbacks for a missing panda. Avoids hard-resetting
+      # (NRST) a live firmware session on every hot reboot.
+      panda_serials = Panda.list()
+      if len(panda_serials) == 0:
+        no_internal_panda_count += 1
+        if no_internal_panda_count >= 3:
+          cloudlog.info("No pandas found, putting internal panda into DFU")
+          HARDWARE.recover_internal_panda()
+          Panda.wait_for_dfu(None, timeout=10)
+        else:
+          cloudlog.info("No pandas found, resetting internal panda")
+          HARDWARE.reset_internal_panda()
+          Panda.wait_for_panda(None, timeout=10)
+        time.sleep(3)  # wait to come back up
+        continue
+      no_internal_panda_count = 0
 
       # Flash all Pandas in DFU mode
       for serial in PandaDFU.list():
@@ -128,6 +142,18 @@ def main() -> None:
         assert len(panda_serials) == 1
         cloudlog.info(f"{len(panda_serials)} panda found, connecting - {panda_serials}")
         flash_panda(panda_serials[0])
+
+        # cooperative soft reset (USB request, firmware reboots itself) for a
+        # clean firmware state before starting C++ pandad - replaces the
+        # unconditional NRST hard reset on every attempt
+        if first_run:
+          cloudlog.info(f"Soft-resetting panda {panda_serials[0]} to ensure a clean state")
+          try:
+            with Panda(panda_serials[0]) as panda:
+              panda.reset(reconnect=True)
+          except Exception:
+            cloudlog.exception("pandad.soft_reset_failed")
+          first_run = False
 
         # run real pandad
         os.environ['MANAGER_DAEMON'] = 'pandad'
