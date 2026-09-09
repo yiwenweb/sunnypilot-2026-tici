@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <QLabel>
 #include <QProgressBar>
 
 #include "openpilot/selfdrive/ui/sunnypilot/qt/util.h"
@@ -36,6 +37,9 @@ private:
   QList<BundleInfo> bundlesForSource(const QString &source);
   QString slotBundleName(const QString &source);
   QString slotActiveRef(const QString &source);
+  bool chestnutCompiled() const;
+  QString statusNote();
+  QPair<QString, QString> carryingModel();  // (source, name) of what actually drives
   void updateModelManagerState();
   void showEvent(QShowEvent *event) override;
 
@@ -56,7 +60,6 @@ private:
   void refreshCameraOffsetControl();
   void showResetParamsDialog();
   QProgressBar* createProgressBar(QWidget *parent);
-  QFrame* createModelDetailFrame(QWidget *parent, QString &typeName, QProgressBar *progressBar);
   cereal::ModelManagerSP::Reader model_manager;
   cereal::ModelManagerSP::DownloadStatus download_status{};
   cereal::ModelManagerSP::DownloadStatus prev_download_status{};
@@ -92,18 +95,9 @@ private:
   ButtonControlSP *cancelDownloadBtn;
   ParamControlSP *lagd_toggle_control;
   OptionControlSP *delay_control;
-  QProgressBar *supercomboProgressBar;
-  QFrame *supercomboFrame;
-  QProgressBar *navigationProgressBar;
-  QFrame *navigationFrame;
-  QProgressBar *visionProgressBar;
-  QFrame *visionFrame;
-  QProgressBar *policyProgressBar;
-  QFrame *policyFrame;
-  QProgressBar *offPolicyProgressBar;
-  QFrame *offPolicyFrame;
-  QProgressBar *onPolicyProgressBar;
-  QFrame *onPolicyFrame;
+  QProgressBar *downloadProgressBar;
+  QFrame *downloadFrame;
+  QLabel *downloadNoteLabel;  // failover note, mirrors _status_note() in the 2026-02 layout
   Params params;
   ButtonControlSP *clearModelCacheBtn;
   ButtonControlSP *refreshAvailableModelsBtn;

@@ -10,6 +10,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QStyle>
+#include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
 #include <QDir>
 #include "openpilot/common/model.h"
@@ -75,6 +76,36 @@ ModelsPanel::ModelsPanel(QWidget *parent) : QWidget(parent) {
   list->addItem(smallModelBtn);
   list->addItem(bigModelBtn);
 
+  // Item order mirrors the 2026-02 raylib models layout:
+  // small, big, cancel download, model status, refresh, clear cache, then toggles.
+  cancelDownloadBtn = new ButtonControlSP(tr("Cancel Download"), tr("CANCEL"), "", this);
+  cancelDownloadBtn->setVisible(false);
+  connect(cancelDownloadBtn, &ButtonControlSP::clicked, [=]() {
+    params.remove("ModelManager_DownloadRef");
+  });
+  list->addItem(cancelDownloadBtn);
+
+  // Single "Model Status" row (replaces the old per-artifact progress frames),
+  // with the failover note rendered below it.
+  downloadFrame = new QFrame(this);
+  QVBoxLayout *status_layout = new QVBoxLayout(downloadFrame);
+  status_layout->setContentsMargins(0, 0, 0, 0);
+  status_layout->setSpacing(5);
+  QHBoxLayout *status_row = new QHBoxLayout();
+  status_row->setContentsMargins(0, 0, 0, 0);
+  status_row->setSpacing(50);
+  status_row->addWidget(new QLabel(tr("Model Status")));
+  downloadProgressBar = createProgressBar(this);
+  status_row->addWidget(downloadProgressBar);
+  status_layout->addLayout(status_row);
+  downloadNoteLabel = new QLabel(downloadFrame);
+  downloadNoteLabel->setWordWrap(true);
+  downloadNoteLabel->setStyleSheet("color: #b8bec6; font-size: 45px;");
+  downloadNoteLabel->setVisible(false);
+  status_layout->addWidget(downloadNoteLabel);
+  downloadFrame->setVisible(false);
+  list->addItem(downloadFrame);
+
   refreshAvailableModelsBtn = new ButtonControlSP(tr("Refresh Model List"), tr("REFRESH"), "", this);
   connect(refreshAvailableModelsBtn, &ButtonControlSP::clicked, this, [=]() {
     params.put("ModelManager_LastSyncTime", "0");
@@ -84,48 +115,10 @@ ModelsPanel::ModelsPanel(QWidget *parent) : QWidget(parent) {
 
   list->addItem(refreshAvailableModelsBtn);
 
-  cancelDownloadBtn = new ButtonControlSP(tr("Cancel Download"), tr("CANCEL"), "", this);
-  cancelDownloadBtn->setVisible(false);
-  connect(cancelDownloadBtn, &ButtonControlSP::clicked, [=]() {
-    params.remove("ModelManager_DownloadRef");
-  });
-  list->addItem(cancelDownloadBtn);
-
   clearModelCacheBtn = new ButtonControlSP(tr("Clear Model Cache"), tr("CLEAR"), "", this);
   connect(clearModelCacheBtn, &ButtonControlSP::clicked, this, &ModelsPanel::clearModelCache);
 
   list->addItem(clearModelCacheBtn);
-
-  // Create progress bars for downloads
-  supercomboProgressBar = createProgressBar(this);
-  QString supercomboType = tr("Driving Model");
-  supercomboFrame = createModelDetailFrame(this, supercomboType, supercomboProgressBar);
-  list->addItem(supercomboFrame);
-
-  navigationProgressBar = createProgressBar(this);
-  QString navigationType = tr("Navigation Model");
-  navigationFrame = createModelDetailFrame(this, navigationType, navigationProgressBar);
-  list->addItem(navigationFrame);
-
-  visionProgressBar = createProgressBar(this);
-  QString visionType = tr("Vision Model");
-  visionFrame = createModelDetailFrame(this, visionType, visionProgressBar);
-  list->addItem(visionFrame);
-
-  policyProgressBar = createProgressBar(this);
-  QString policyType = tr("Policy Model");
-  policyFrame = createModelDetailFrame(this, policyType, policyProgressBar);
-  list->addItem(policyFrame);
-
-  offPolicyProgressBar = createProgressBar(this);
-  QString offPolicyType = tr("Off-Policy Model");
-  offPolicyFrame = createModelDetailFrame(this, offPolicyType, offPolicyProgressBar);
-  list->addItem(offPolicyFrame);
-
-  onPolicyProgressBar = createProgressBar(this);
-  QString onPolicyType = tr("On-Policy Model");
-  onPolicyFrame = createModelDetailFrame(this, onPolicyType, onPolicyProgressBar);
-  list->addItem(onPolicyFrame);
   list->addItem(horizontal_line());
 
   // Lane Turn Desire toggle
@@ -190,8 +183,10 @@ void ModelsPanel::refreshCameraOffsetControl() {
   if (!camera_offset_control) return;
   const float value = QString::fromStdString(params.get("CameraOffset")).toFloat();
   camera_offset_control->setLabel(QString::number(value, 'f', 2) + " m");
-  // Advanced-only, same as the other advanced controls on this panel.
-  camera_offset_control->setVisible(params.getBool("ShowAdvancedControls"));
+  // Baseline shows the offset control only while a custom bundle is driving
+  // (ui_state.active_bundle is not None), same advanced gating as the others.
+  const bool custom_active = slotActiveRef(activeSource()) != DEFAULT_MODEL;
+  camera_offset_control->setVisible(params.getBool("ShowAdvancedControls") && custom_active);
 }
 
 QProgressBar* ModelsPanel::createProgressBar(QWidget *parent) {
@@ -203,15 +198,10 @@ QProgressBar* ModelsPanel::createProgressBar(QWidget *parent) {
   return progressBar;
 }
 
-QFrame* ModelsPanel::createModelDetailFrame(QWidget *parent, QString &typeName, QProgressBar *progressBar) {
-  QFrame *frame = new QFrame(parent);
-  QHBoxLayout *layout = new QHBoxLayout(frame);
-  layout->setContentsMargins(0, 0, 0, 0);
-  layout->setSpacing(50);
-  layout->addWidget(new QLabel(typeName));
-  layout->addWidget(progressBar);
-  frame->setVisible(false);
-  return frame;
+// big_driving_tinygrad.pkl.chunkmanifest present == the chestnut runner is
+// compiled; mirrors chestnut_compiled() in selfdrive/modeld/helpers.py.
+bool ModelsPanel::chestnutCompiled() const {
+  return QFileInfo::exists("selfdrive/modeld/models/big_driving_tinygrad.pkl.chunkmanifest");
 }
 
 void ModelsPanel::refreshLaneTurnValueControl() {
@@ -228,35 +218,21 @@ void ModelsPanel::refreshLaneTurnValueControl() {
 }
 
 /**
- * @brief Updates the UI with bundle download progress information
- * Reads status from modelManagerSP cereal message and displays status for all models
+ * @brief Updates the single "Model Status" row, mirroring _handle_bundle_download_progress()
+ * and _download_row_state() from the 2026-02 raylib layout.
  */
 void ModelsPanel::handleBundleDownloadProgress() {
-  supercomboFrame->setVisible(false);
-  visionFrame->setVisible(false);
-  policyFrame->setVisible(false);
-  offPolicyFrame->setVisible(false);
-  onPolicyFrame->setVisible(false);
-  navigationFrame->setVisible(false);
-
   using DS = cereal::ModelManagerSP::DownloadStatus;
-  if (!model_manager.hasSelectedBundle() && !model_manager.hasActiveBundle()) {
-    return;
-  }
+  downloadFrame->setVisible(false);
+  downloadNoteLabel->setVisible(false);
 
-  const bool showSelectedBundle = model_manager.hasSelectedBundle() && (isDownloading() || model_manager.getSelectedBundle().getStatus() == DS::FAILED);
-  const auto &bundle = showSelectedBundle ? model_manager.getSelectedBundle() : model_manager.getActiveBundle();
-  const auto &models = bundle.getModels();
-  download_status = bundle.getStatus();
-  const auto download_status_changed = prev_download_status != download_status;
-
-  // 功能1: Cancel Download 按钮显隐
+  // Cancel Download 按钮显隐
   cancelDownloadBtn->setVisible(
     model_manager.hasSelectedBundle() &&
     !params.get("ModelManager_DownloadRef").empty()
   );
 
-  // 功能4: 缓存大小 0.5s 防抖
+  // 缓存大小 0.5s 防抖
   const double current_time = std::chrono::duration<double>(
     std::chrono::steady_clock::now().time_since_epoch()).count();
   if (current_time - last_cache_calc_time > 0.5) {
@@ -264,73 +240,115 @@ void ModelsPanel::handleBundleDownloadProgress() {
     clearModelCacheBtn->setValue(QString::number(calculateCacheSize(), 'f', 2) + " MB");
   }
 
-  QStringList status;
+  if (!model_manager.hasSelectedBundle() && !model_manager.hasActiveBundle()) {
+    return;
+  }
 
-  // Get status for each model type in order
-  for (const auto &model: models) {
-    QString modelName = QString::fromStdString(bundle.getDisplayName());
+  const bool showSelectedBundle = model_manager.hasSelectedBundle() && (isDownloading() || model_manager.getSelectedBundle().getStatus() == DS::FAILED);
+  const auto &bundle = showSelectedBundle ? model_manager.getSelectedBundle() : model_manager.getActiveBundle();
+  download_status = bundle.getStatus();
+  const bool download_status_changed = prev_download_status != download_status;
+  prev_download_status = download_status;
 
-    QProgressBar *progressBar = nullptr;
-    QFrame *modelFrame = nullptr;
-
-    switch (model.getType()) {
-      case cereal::ModelManagerSP::Model::Type::SUPERCOMBO:
-        progressBar = supercomboProgressBar;
-        modelFrame = supercomboFrame;
-        break;
-      case cereal::ModelManagerSP::Model::Type::NAVIGATION:
-        progressBar = navigationProgressBar;
-        modelFrame = navigationFrame;
-        break;
-      case cereal::ModelManagerSP::Model::Type::VISION:
-        progressBar = visionProgressBar;
-        modelFrame = visionFrame;
-        break;
-      case cereal::ModelManagerSP::Model::Type::POLICY:
-        progressBar = policyProgressBar;
-        modelFrame = policyFrame;
-        break;
-      case cereal::ModelManagerSP::Model::Type::OFF_POLICY:
-        progressBar = offPolicyProgressBar;
-        modelFrame = offPolicyFrame;
-        break;
-      case cereal::ModelManagerSP::Model::Type::ON_POLICY:
-        progressBar = onPolicyProgressBar;
-        modelFrame = onPolicyFrame;
-        break;
-      case cereal::ModelManagerSP::Model::Type::CHUNKED:
-        progressBar = supercomboProgressBar;
-        modelFrame = supercomboFrame;
-        break;
+  // Aggregate every artifact of the bundle, like the baseline does
+  bool any_downloading = false, any_verifying = false, any_failed = false;
+  float progress_sum = 0.0f;
+  int artifact_count = 0;
+  for (const auto &model : bundle.getModels()) {
+    const auto &artifact = model.getArtifact();
+    if (artifact.getFileName().size() == 0) {
+      continue;
     }
-
-    const auto &progress = model.getArtifact().getDownloadProgress();
-    QString line;
-
-    if (progress.getStatus() == cereal::ModelManagerSP::DownloadStatus::DOWNLOADING) {
-      progressBar->setStyleSheet(progressStyleActive);
-      progressBar->setValue(progress.getProgress());
-      progressBar->setFormat(QString("  %1% - %2").arg(static_cast<int>(progress.getProgress())).arg(modelName));
-      device()->resetInteractiveTimeout();
-    } else if (progress.getStatus() == cereal::ModelManagerSP::DownloadStatus::DOWNLOADED) {
-      progressBar->setStyleSheet(progressStyleDone);
-      progressBar->setFormat(tr("  %1 - %2").arg(modelName, download_status_changed ? tr("downloaded") : tr("ready")));
-    } else if (progress.getStatus() == cereal::ModelManagerSP::DownloadStatus::CACHED) {
-      progressBar->setStyleSheet(progressStyleDone);
-      progressBar->setFormat(tr("  %1 - %2").arg(modelName, download_status_changed ? tr("from cache") : tr("ready")));
-    } else if (progress.getStatus() == cereal::ModelManagerSP::DownloadStatus::FAILED) {
-      progressBar->setStyleSheet(progressStyleError);
-      progressBar->setFormat(tr("  download failed - %1").arg(modelName));
-    } else {
-      progressBar->setStyleSheet(progressStyleInactive);
-      progressBar->setFormat(tr("  pending - %1").arg(modelName));
-    }
-    // keep navigation hidden for now to avoid confusion
-    if (model.getType() != cereal::ModelManagerSP::Model::Type::NAVIGATION) {
-      modelFrame->setVisible(true);
+    const auto &progress = artifact.getDownloadProgress();
+    progress_sum += progress.getProgress();
+    ++artifact_count;
+    switch (progress.getStatus()) {
+      case DS::DOWNLOADING: any_downloading = true; break;
+      case DS::VERIFYING:   any_verifying = true;   break;
+      case DS::FAILED:      any_failed = true;      break;
+      default: break;
     }
   }
-  prev_download_status = download_status;
+  const float progress_avg = artifact_count > 0 ? progress_sum / artifact_count : 0.0f;
+  const QString bundle_name = QString::fromStdString(bundle.getInternalName());
+
+  downloadFrame->setVisible(true);
+
+  if (any_failed) {
+    downloadProgressBar->setStyleSheet(progressStyleError);
+    downloadProgressBar->setFormat(tr("  %1 - download failed").arg(bundle_name));
+  } else if (any_verifying) {
+    downloadProgressBar->setStyleSheet(progressStyleActive);
+    downloadProgressBar->setValue(static_cast<int>(progress_avg));
+    downloadProgressBar->setFormat(tr("  %1 - verifying").arg(bundle_name));
+  } else if (any_downloading) {
+    downloadProgressBar->setStyleSheet(progressStyleActive);
+    downloadProgressBar->setValue(static_cast<int>(progress_avg));
+    downloadProgressBar->setFormat("  %1% - " + bundle_name);
+    device()->resetInteractiveTimeout();
+  } else if (showSelectedBundle) {
+    // selected but the manager hasn't picked it up yet
+    downloadProgressBar->setStyleSheet(progressStyleInactive);
+    downloadProgressBar->setFormat(tr("  pending - %1").arg(bundle_name));
+  } else if (download_status == DS::DOWNLOADED || download_status == DS::CACHED) {
+    downloadProgressBar->setStyleSheet(progressStyleDone);
+    downloadProgressBar->setFormat(tr("  %1 - %2").arg(bundle_name, download_status_changed ? tr("downloaded") : tr("ready")));
+  } else {
+    // Idle: show both slots side by side like _slot_segments() in the baseline
+    downloadProgressBar->setStyleSheet(progressStyleInactive);
+    downloadProgressBar->setFormat(tr("  small: %1   |   big: %2").arg(slotBundleName("qcom"), slotBundleName("chestnut")));
+  }
+
+  // Failover note, mirrors _status_note() (offroad-only states apply here)
+  const QString note = statusNote();
+  if (!note.isEmpty()) {
+    downloadNoteLabel->setText(note);
+    downloadNoteLabel->setVisible(true);
+  }
+}
+
+/**
+ * @brief The failover story for the Model Status row. One-way big -> small, and
+ * the fallback is runner-matched. Mirrors _status_note() in the 2026-02 layout.
+ */
+QString ModelsPanel::statusNote() {
+  const SubMaster &sm = *(uiStateSP()->sm);
+  const bool chestnut_present = sm["deviceState"].getDeviceState().getChestnutPresent();
+  if (!chestnut_present) {
+    return QString();
+  }
+
+  const bool big_is_default = slotActiveRef("chestnut") == DEFAULT_MODEL;
+  if (!chestnutCompiled()) {
+    // ChestnutState.UNCOMPILED -> 'failed' in big_model_state()
+    if (big_is_default) {
+      return tr("Big model unavailable, %1 is driving until the next drive.").arg(defaultModelName("qcom"));
+    }
+    return tr("Big model unavailable until the next drive.");
+  }
+
+  const QString big_name = slotBundleName("chestnut");
+  if (big_is_default) {
+    return tr("%1 will drive. If it fails during a drive, %2 takes over until the next drive.").arg(big_name, defaultModelName("qcom"));
+  }
+  return tr("%1 will drive when the chestnut is ready.").arg(big_name);
+}
+
+/**
+ * @brief (source, name) of what actually drives. Runner-matched, offroad
+ * semantics; mirrors carrying_model() in the 2026-02 model_info.py.
+ */
+QPair<QString, QString> ModelsPanel::carryingModel() {
+  const SubMaster &sm = *(uiStateSP()->sm);
+  const bool chestnut_present = sm["deviceState"].getDeviceState().getChestnutPresent();
+  if (chestnut_present) {
+    if (slotActiveRef("chestnut") == DEFAULT_MODEL) {
+      // Default big cannot carry offroad until ready; stock modeld runs the Default small
+      return {QStringLiteral("qcom"), defaultModelName("qcom")};
+    }
+    return {QStringLiteral("chestnut"), slotBundleName("chestnut")};
+  }
+  return {QStringLiteral("qcom"), slotBundleName("qcom")};
 }
 
 void ModelsPanel::updateModelManagerState() {
@@ -569,11 +587,16 @@ void ModelsPanel::updateLabels() {
   updateModelManagerState();
   handleBundleDownloadProgress();
 
-  // Both slots follow the 2026-02 raylib behavior: selectable offroad only
+  // Both slots follow the 2026-02 raylib behavior: selectable offroad only.
+  // The slot whose pick is actually driving is highlighted green, like
+  // _update_state()'s set_value(name, color) in the baseline layout.
   smallModelBtn->setEnabled(!is_onroad && !isDownloading());
   bigModelBtn->setEnabled(!is_onroad);
-  smallModelBtn->setValue(slotBundleName("qcom"));
-  bigModelBtn->setValue(slotBundleName("chestnut"));
+  const auto [carry_source, carry_name] = carryingModel();
+  const QString small_name = slotBundleName("qcom");
+  const QString big_name = slotBundleName("chestnut");
+  smallModelBtn->setValue(small_name, carry_source == "qcom" && small_name == carry_name ? QString("#33ab4c") : std::optional<QString>{});
+  bigModelBtn->setValue(big_name, carry_source == "chestnut" && big_name == carry_name ? QString("#33ab4c") : std::optional<QString>{});
 
   // Update lagdToggle description with current value
   QString desc = tr("Enable this for the car to learn and adapt its steering response time. "
