@@ -19,7 +19,6 @@ public:
  explicit VisualsPanel(QWidget *parent = nullptr);
 
  void paramsRefresh();
- void refreshLongitudinalStatus();
 
 protected:
  QStackedLayout* main_layout = nullptr;
@@ -30,6 +29,4 @@ protected:
  ParamWatcher * param_watcher;
  ButtonParamControlSP *chevron_info_settings;
  ButtonParamControlSP *dev_ui_settings;
-
- bool has_longitudinal_control = false;
 };

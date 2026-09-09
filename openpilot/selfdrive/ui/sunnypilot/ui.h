@@ -79,6 +79,7 @@ private slots:
   void update() override;
 
 private:
+  void enforceConstraints();
   std::vector<RoleModel> sunnylinkRoles = {};
   std::vector<UserModel> sunnylinkUsers = {};
   ParamWatcher *param_watcher;

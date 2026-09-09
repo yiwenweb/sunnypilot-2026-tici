@@ -80,7 +80,7 @@ ModelsPanel::ModelsPanel(QWidget *parent) : QWidget(parent) {
   cancelDownloadBtn = new ButtonControlSP(tr("Cancel Download"), tr("CANCEL"), "", this);
   cancelDownloadBtn->setVisible(false);
   connect(cancelDownloadBtn, &ButtonControlSP::clicked, [=]() {
-    params.remove("ModelManager_DownloadIndex");
+    params.remove("ModelManager_DownloadRef");
   });
   list->addItem(cancelDownloadBtn);
 
@@ -246,7 +246,7 @@ void ModelsPanel::handleBundleDownloadProgress() {
   // 功能1: Cancel Download 按钮显隐
   cancelDownloadBtn->setVisible(
     model_manager.hasSelectedBundle() &&
-    !params.get("ModelManager_DownloadIndex").empty()
+    !params.get("ModelManager_DownloadRef").empty()
   );
 
   // 功能4: 缓存大小 0.5s 防抖
@@ -460,7 +460,7 @@ void ModelsPanel::handleCurrentModelLblBtnClicked() {
     // Find selected bundle and initiate download
     for (const auto &bundle: model_manager.getAvailableBundles()) {
       if (QString::fromStdString(bundle.getRef()) == selectedBundleRef) {
-        params.put("ModelManager_DownloadIndex", std::to_string(bundle.getIndex()));
+        params.put("ModelManager_DownloadRef", bundle.getRef().cStr());
         if (bundle.getGeneration() != model_manager.getActiveBundle().getGeneration()) {
           showResetParamsDialog();
         }

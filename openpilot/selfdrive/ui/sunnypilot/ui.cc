@@ -8,6 +8,7 @@
 #include "openpilot/selfdrive/ui/sunnypilot/ui.h"
 
 #include "openpilot/common/watchdog.h"
+#include "cereal/messaging/messaging.h"
 
 void UIStateSP::updateStatus() {
   UIState::updateStatus();
@@ -56,8 +57,102 @@ void UIStateSP::update() {
 
   if (sm->frame % UI_FREQ == 0) {
     watchdog_kick(nanos_since_boot());
+    // sunnypilot: periodic param constraint enforcement (1 Hz)
+    enforceConstraints();
   }
   emit uiUpdate(*this);
+}
+
+// Port of UIStateSP._enforce_constraints from the raylib UI
+// (selfdrive/ui/sunnypilot/ui_state.py): keeps car-dependent params
+// consistent with the current car and control availability.
+void UIStateSP::enforceConstraints() {
+  auto params = Params();
+
+  bool has_cp = false;
+  bool is_angle_steering = false;
+  bool alpha_long_available = false;
+  bool enable_bsm = false;
+  bool has_long = false;
+
+  auto cp_bytes = params.get("CarParamsPersistent");
+  if (!cp_bytes.empty()) {
+    AlignedBuffer aligned_buf;
+    capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
+    cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
+
+    has_cp = true;
+    is_angle_steering = CP.getSteerControlType() == cereal::CarParams::SteerControlType::ANGLE;
+    alpha_long_available = CP.getAlphaLongitudinalAvailable();
+    enable_bsm = CP.getEnableBsm();
+    has_long = hasLongitudinalControl(CP);
+  }
+
+  bool icbm_available = false;
+  bool has_icbm = false;
+  auto cp_sp_bytes = params.get("CarParamsSPPersistent");
+  if (!cp_sp_bytes.empty()) {
+    AlignedBuffer aligned_buf_sp;
+    capnp::FlatArrayMessageReader cmsg_sp(aligned_buf_sp.align(cp_sp_bytes.data(), cp_sp_bytes.size()));
+    cereal::CarParamsSP::Reader CP_SP = cmsg_sp.getRoot<cereal::CarParamsSP>();
+
+    icbm_available = CP_SP.getIntelligentCruiseButtonManagementAvailable();
+    has_icbm = icbm_available && params.getBool("IntelligentCruiseButtonManagement");
+  }
+
+  if (has_cp) {
+    if (params.getBool("EnforceTorqueControl") && params.getBool("NeuralNetworkLateralControl")) {
+      params.putBool("EnforceTorqueControl", false);
+      params.putBool("NeuralNetworkLateralControl", false);
+    }
+
+    if (params.getBool("LateralJerkTorqueController") && params.getBool("NeuralNetworkLateralControl")) {
+      params.putBool("LateralJerkTorqueController", false);
+      params.putBool("NeuralNetworkLateralControl", false);
+    }
+
+    // Angle steering: no torque-based lateral controls
+    if (is_angle_steering) {
+      params.remove("EnforceTorqueControl");
+      params.remove("NeuralNetworkLateralControl");
+      params.remove("LateralJerkTorqueController");
+    }
+
+    // Alpha longitudinal: clear if not available
+    if (!alpha_long_available) {
+      params.remove("AlphaLongitudinalEnabled");
+    }
+
+    // BSM not available: clear BSM-dependent settings
+    if (!enable_bsm) {
+      params.remove("AutoLaneChangeBsmDelay");
+    }
+  } else {
+    // No CarParams: clear all car-dependent params as safety default
+    params.remove("EnforceTorqueControl");
+    params.remove("NeuralNetworkLateralControl");
+    params.remove("LateralJerkTorqueController");
+    params.remove("AlphaLongitudinalEnabled");
+  }
+
+  // No longitudinal control: no experimental mode or DEC
+  if (!has_long) {
+    params.remove("ExperimentalMode");
+    params.remove("DynamicExperimentalControl");
+  }
+
+  // ICBM: clear if not available or if full longitudinal control is active
+  if (!icbm_available || has_long) {
+    params.remove("IntelligentCruiseButtonManagement");
+    has_icbm = false;
+  }
+
+  // Cruise features requiring longitudinal or ICBM
+  if (!(has_long || has_icbm)) {
+    params.remove("CustomAccIncrementsEnabled");
+    params.remove("SmartCruiseControlVision");
+    params.remove("SmartCruiseControlMap");
+  }
 }
 
 void ui_update_params_sp(UIStateSP *s) {
