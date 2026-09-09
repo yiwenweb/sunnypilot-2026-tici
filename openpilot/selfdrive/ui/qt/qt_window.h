@@ -6,7 +6,7 @@
 #include <QScreen>
 #include <QWidget>
 
-#ifdef QCOM2
+#if defined(QCOM2) || defined(__COMMA_HARDWARE__)
 #include <qpa/qplatformnativeinterface.h>
 #include <wayland-client-protocol.h>
 #include <QPlatformSurfaceEvent>

@@ -17,7 +17,7 @@ void setMainWindow(QWidget *w) {
   }
   w->show();
 
-#ifdef QCOM2
+#if defined(QCOM2) || defined(__COMMA_HARDWARE__)
   QPlatformNativeInterface *native = QGuiApplication::platformNativeInterface();
 
   // The wayland surface may not exist yet right after show(); retry briefly
