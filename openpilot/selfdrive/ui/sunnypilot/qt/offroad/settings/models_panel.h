@@ -19,9 +19,23 @@ public:
   explicit ModelsPanel(QWidget *parent = nullptr);
 
 private:
-  QString GetActiveModelName();
-  QString GetActiveModelInternalName();
-  QString GetActiveModelRef();
+  // A lightweight view of a model bundle (live from modelManagerSP for the
+  // active hardware source, or parsed from the cached JSON for the other).
+  struct BundleInfo {
+    QString ref;
+    QString displayName;
+    QString internalName;
+    QString folder;
+    int index = -1;
+    int generation = 0;
+  };
+
+  QString activeSource() const;
+  QString activeBundleKey(const QString &source) const;
+  QString defaultModelName(const QString &source) const;
+  QList<BundleInfo> bundlesForSource(const QString &source);
+  QString slotBundleName(const QString &source);
+  QString slotActiveRef(const QString &source);
   void updateModelManagerState();
   void showEvent(QShowEvent *event) override;
 
@@ -36,7 +50,7 @@ private:
 
   // UI update related methods
   void updateLabels();
-  void handleCurrentModelLblBtnClicked();
+  void handleModelSelectClicked(const QString &source);
   void handleBundleDownloadProgress();
   void refreshLaneTurnValueControl();
   void refreshCameraOffsetControl();
@@ -73,7 +87,8 @@ private:
   // 缓存大小防抖
   double last_cache_calc_time{};
 
-  ButtonControlSP *currentModelLblBtn;
+  ButtonControlSP *smallModelBtn;
+  ButtonControlSP *bigModelBtn;
   ButtonControlSP *cancelDownloadBtn;
   ParamControlSP *lagd_toggle_control;
   OptionControlSP *delay_control;

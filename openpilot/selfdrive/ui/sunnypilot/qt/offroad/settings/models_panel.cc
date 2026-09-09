@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QStyle>
 #include <QtConcurrent/QtConcurrent>
@@ -57,21 +58,27 @@ ModelsPanel::ModelsPanel(QWidget *parent) : QWidget(parent) {
   ScrollViewSP *scroller = new ScrollViewSP(list, this);
   main_layout->addWidget(scroller);
 
-  const auto current_model = GetActiveModelName();
-  currentModelLblBtn = new ButtonControlSP(tr("Current Model"), tr("SELECT"), "", this);
-  currentModelLblBtn->setValue(current_model);
+  // Dual-slot selectors, matching the 2026-02 raylib UI:
+  // "qcom" drives the small model slot, "chestnut" the big model slot.
+  smallModelBtn = new ButtonControlSP(tr("Small Model"), tr("SELECT"), "", this);
+  bigModelBtn = new ButtonControlSP(tr("Big Model"), tr("SELECT"), "", this);
+  smallModelBtn->setValue(slotBundleName("qcom"));
+  bigModelBtn->setValue(slotBundleName("chestnut"));
 
-  connect(currentModelLblBtn, &ButtonControlSP::clicked, this, &ModelsPanel::handleCurrentModelLblBtnClicked);
+  connect(smallModelBtn, &ButtonControlSP::clicked, this, [this]() { handleModelSelectClicked("qcom"); });
+  connect(bigModelBtn, &ButtonControlSP::clicked, this, [this]() { handleModelSelectClicked("chestnut"); });
   connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
       is_onroad = !offroad;
       updateLabels();
     });
   connect(uiStateSP(), &UIStateSP::uiUpdate, this, &ModelsPanel::updateLabels);
-  list->addItem(currentModelLblBtn);
+  list->addItem(smallModelBtn);
+  list->addItem(bigModelBtn);
 
   refreshAvailableModelsBtn = new ButtonControlSP(tr("Refresh Model List"), tr("REFRESH"), "", this);
   connect(refreshAvailableModelsBtn, &ButtonControlSP::clicked, this, [=]() {
     params.put("ModelManager_LastSyncTime", "0");
+    params.put("ModelManager_LastSyncTime_Chestnut", "0");
     ConfirmationDialog::alert(tr("Fetching Latest Models"), this);
   });
 
@@ -326,73 +333,154 @@ void ModelsPanel::handleBundleDownloadProgress() {
   prev_download_status = download_status;
 }
 
-/**
- * @brief Gets the name of the currently selected model bundle
- * @return Display name of the selected bundle or default model name
- */
-QString ModelsPanel::GetActiveModelName() {
-  if (model_manager.hasActiveBundle()) {
-    return QString::fromStdString(model_manager.getActiveBundle().getDisplayName());
-  }
-
-  return DEFAULT_MODEL;
-}
-
-/**
- * @brief Gets the short name of the currently selected model bundle
- * @return Display short name of the selected bundle or default model name
- */
-QString ModelsPanel::GetActiveModelInternalName() {
-  if (model_manager.hasActiveBundle()) {
-    return QString::fromStdString(model_manager.getActiveBundle().getInternalName());
-  }
-  return DEFAULT_MODEL;
-}
-
-/**
- * @brief Gets the ref of the currently selected model bundle
- * @return ref of the selected bundle or default model name
- */
-QString ModelsPanel::GetActiveModelRef() {
-  if (model_manager.hasActiveBundle()) {
-    return QString::fromStdString(model_manager.getActiveBundle().getRef());
-  }
-
-  return DEFAULT_MODEL;
-}
-
 void ModelsPanel::updateModelManagerState() {
   const SubMaster &sm = *(uiStateSP()->sm);
   model_manager = sm["modelManagerSP"].getModelManagerSP();
 }
 
+// Hardware source of the running system: "chestnut" (big model) when the
+// chestnut hardware is present and we're offroad, otherwise "qcom" (small).
+// Mirrors get_active_source() in sunnypilot/models/helpers.py.
+QString ModelsPanel::activeSource() const {
+  const SubMaster &sm = *(uiStateSP()->sm);
+  const bool chestnut_present = sm["deviceState"].getDeviceState().getChestnutPresent();
+  return (chestnut_present && !is_onroad) ? "chestnut" : "qcom";
+}
+
+QString ModelsPanel::activeBundleKey(const QString &source) const {
+  return (source == "chestnut") ? "ModelManager_ActiveBundleChestnut" : "ModelManager_ActiveBundle";
+}
+
+QString ModelsPanel::defaultModelName(const QString &source) const {
+  // Matches sunnypilot/models/model_name.py: CD210 (small) / Lebowski (big)
+  return (source == "chestnut") ? tr("Lebowski (Default)") : tr("CD210 (Default)");
+}
+
+// Bundles for a slot: live list from modelManagerSP for the active source,
+// or the manager's cached JSON (ModelManager_ModelsCache[_Chestnut]) otherwise.
+QList<ModelsPanel::BundleInfo> ModelsPanel::bundlesForSource(const QString &source) {
+  QList<BundleInfo> out;
+  const int required_json_version = 18;  // REQUIRED_JSON_VERSION in sunnypilot/models/helpers.py
+
+  if (source == activeSource()) {
+    for (const auto &bundle : model_manager.getAvailableBundles()) {
+      BundleInfo bi;
+      bi.ref = QString::fromStdString(bundle.getRef());
+      bi.displayName = QString::fromStdString(bundle.getDisplayName());
+      bi.internalName = QString::fromStdString(bundle.getInternalName());
+      bi.index = static_cast<int>(bundle.getIndex());
+      bi.generation = static_cast<int>(bundle.getGeneration());
+      for (const auto &override : bundle.getOverrides()) {
+        if (override.getKey() == "folder") {
+          bi.folder = QString::fromStdString(override.getValue().cStr());
+        }
+      }
+      out.append(bi);
+    }
+    return out;
+  }
+
+  const std::string cache_key = "ModelManager_ModelsCache" + (source == "chestnut" ? std::string("_Chestnut") : std::string());
+  const auto cached = params.get(cache_key);
+  if (cached.empty()) {
+    return out;
+  }
+
+  QJsonParseError parse_error{};
+  const QJsonDocument doc = QJsonDocument::fromJson(QByteArray(cached.data(), static_cast<int>(cached.size())), &parse_error);
+  if (parse_error.error != QJsonParseError::NoError || !doc.isObject()) {
+    return out;
+  }
+
+  const QJsonArray bundles_json = doc.object().value("bundles").toArray();
+  for (const auto &entry : bundles_json) {
+    const QJsonObject obj = entry.toObject();
+    if (obj.value("minimum_selector_version").toInt() != required_json_version) {
+      continue;
+    }
+    BundleInfo bi;
+    bi.ref = obj.value("ref").toString();
+    bi.displayName = obj.value("display_name").toString();
+    bi.internalName = obj.value("short_name").toString();
+    bi.index = obj.value("index").toInt();
+    bi.generation = obj.value("generation").toInt();
+    const QJsonValue overrides = obj.value("overrides");
+    if (overrides.isObject()) {
+      bi.folder = overrides.toObject().value("folder").toString();
+    } else if (overrides.isArray()) {
+      for (const auto &ov : overrides.toArray()) {
+        const QJsonObject ov_obj = ov.toObject();
+        if (ov_obj.value("key").toString() == "folder") {
+          bi.folder = ov_obj.value("value").toString();
+        }
+      }
+    }
+    out.append(bi);
+  }
+  return out;
+}
+
+// Display name of what's picked in a slot: the stored active bundle's
+// displayName, or the source's default. Reads the params slot directly, never
+// modelManagerSP.activeBundle (which only reflects the running source).
+QString ModelsPanel::slotBundleName(const QString &source) {
+  const auto raw = params.get(activeBundleKey(source).toStdString());
+  if (!raw.empty()) {
+    const QJsonDocument doc = QJsonDocument::fromJson(QByteArray(raw.data(), static_cast<int>(raw.size())));
+    if (doc.isObject()) {
+      const QString name = doc.object().value("displayName").toString();
+      if (!name.isEmpty()) {
+        return name;
+      }
+    }
+  }
+  return defaultModelName(source);
+}
+
+QString ModelsPanel::slotActiveRef(const QString &source) {
+  const auto raw = params.get(activeBundleKey(source).toStdString());
+  if (!raw.empty()) {
+    const QJsonDocument doc = QJsonDocument::fromJson(QByteArray(raw.data(), static_cast<int>(raw.size())));
+    if (doc.isObject()) {
+      const QString ref = doc.object().value("ref").toString();
+      if (!ref.isEmpty()) {
+        return ref;
+      }
+    }
+  }
+  return DEFAULT_MODEL;
+}
+
 /**
- * @brief Handles the model bundle selection button click
- * Displays available bundles, allows selection, and initiates download
+ * @brief Handles a model slot selection button click ("qcom" small / "chestnut" big).
+ * Shows bundles for that source, and stores the pick the same way the 2026-02
+ * raylib UI does: "Default" clears the slot's active-bundle key, anything else
+ * writes ModelManager_DownloadRef for the manager to resolve.
  */
-void ModelsPanel::handleCurrentModelLblBtnClicked() {
-  currentModelLblBtn->setEnabled(false);
-  currentModelLblBtn->setValue(tr("Fetching models..."));
+void ModelsPanel::handleModelSelectClicked(const QString &source) {
+  ButtonControlSP *btn = (source == "chestnut") ? bigModelBtn : smallModelBtn;
+  btn->setEnabled(false);
+  btn->setValue(tr("Fetching models..."));
+
+  const QList<BundleInfo> bundles = bundlesForSource(source);
+  if (bundles.isEmpty()) {
+    btn->setValue(slotBundleName(source));
+    btn->setEnabled(!is_onroad);
+    ConfirmationDialog::alert(tr("No models are available for this hardware yet. Connect to the internet and refresh the model list."), this);
+    return;
+  }
 
   QList<TreeNode> sortedModels;
   QSet<QString> modelFolders;
   QRegularExpression re("\\(([^)]*)\\)[^(]*$");
 
-  for (const auto &bundle : model_manager.getAvailableBundles()) {
-    auto overrides = bundle.getOverrides();
-    QString folder;
-    for (const auto &override : overrides) {
-      if (override.getKey() == "folder") {
-        folder = QString::fromStdString(override.getValue().cStr());
-      }
-    }
-
-    modelFolders.insert(folder);
+  for (const auto &bundle : bundles) {
+    modelFolders.insert(bundle.folder);
     sortedModels.append(TreeNode{
-      folder,
-      QString::fromStdString(bundle.getDisplayName()),
-      QString::fromStdString(bundle.getRef()),
-      static_cast<int>(bundle.getIndex())
+      bundle.folder,
+      bundle.displayName,
+      bundle.ref,
+      bundle.index
     });
   }
 
@@ -439,31 +527,29 @@ void ModelsPanel::handleCurrentModelLblBtnClicked() {
   }
 
   items.insert(0, TreeFolder{"", {
-    TreeNode{"", DEFAULT_MODEL, DEFAULT_MODEL, -1}
+    TreeNode{"", defaultModelName(source), DEFAULT_MODEL, -1}
   }});
 
-  currentModelLblBtn->setValue(GetActiveModelInternalName());
+  btn->setValue(slotBundleName(source));
 
   const QString selectedBundleRef = TreeOptionDialog::getSelection(
-    tr("Select a Model"), items, GetActiveModelRef(), QString("ModelManager_Favs"), this);
+    tr("Select a Model"), items, slotActiveRef(source), QString("ModelManager_Favs"), this);
 
   if (selectedBundleRef.isEmpty() || !canContinueOnMeteredDialog()) {
+    btn->setEnabled(!is_onroad);
     return;
   }
 
-  // Handle "Stock" selection differently
   if (selectedBundleRef == DEFAULT_MODEL) {
-    params.remove("ModelManager_ActiveBundle");
-    currentModelLblBtn->setValue(tr("Default"));
-    showResetParamsDialog();
+    // "Default" clears the slot, exactly like ACTIVE_BUNDLE_KEYS handling
+    params.remove(activeBundleKey(source).toStdString());
   } else {
-    // Find selected bundle and initiate download
-    for (const auto &bundle: model_manager.getAvailableBundles()) {
-      if (QString::fromStdString(bundle.getRef()) == selectedBundleRef) {
-        params.put("ModelManager_DownloadRef", bundle.getRef().cStr());
-        if (bundle.getGeneration() != model_manager.getActiveBundle().getGeneration()) {
-          showResetParamsDialog();
-        }
+    params.put("ModelManager_DownloadRef", selectedBundleRef.toStdString());
+    // Suggest calibration reset when switching model generations
+    for (const auto &bundle : bundles) {
+      if (bundle.ref == selectedBundleRef && source == activeSource() &&
+          bundle.generation != model_manager.getActiveBundle().getGeneration()) {
+        showResetParamsDialog();
         break;
       }
     }
@@ -482,8 +568,12 @@ void ModelsPanel::updateLabels() {
 
   updateModelManagerState();
   handleBundleDownloadProgress();
-  currentModelLblBtn->setEnabled(!is_onroad && !isDownloading());
-  currentModelLblBtn->setValue(GetActiveModelInternalName());
+
+  // Both slots follow the 2026-02 raylib behavior: selectable offroad only
+  smallModelBtn->setEnabled(!is_onroad && !isDownloading());
+  bigModelBtn->setEnabled(!is_onroad);
+  smallModelBtn->setValue(slotBundleName("qcom"));
+  bigModelBtn->setValue(slotBundleName("chestnut"));
 
   // Update lagdToggle description with current value
   QString desc = tr("Enable this for the car to learn and adapt its steering response time. "
