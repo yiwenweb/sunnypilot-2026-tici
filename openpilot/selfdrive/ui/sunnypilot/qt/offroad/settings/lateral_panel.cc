@@ -122,6 +122,27 @@ LateralPanel::LateralPanel(SettingsWindowSP *parent) : QFrame(parent) {
 
   QObject::connect(uiState(), &UIState::offroadTransition, this, &LateralPanel::updateToggles);
 
+  // Lane Center Correction
+  laneCenterCorrectionToggle = new ParamControlSP(
+    "LaneCenterCorrection",
+    tr("Lane Center Correction"),
+    tr("Actively steer back to lane center when drifting from center (uses detected lane lines). "
+       "Works on straight roads; auto-disabled during lane changes."),
+    "");
+  list->addItem(laneCenterCorrectionToggle);
+
+  list->addItem(horizontal_line());
+
+  // Auto Camera Offset Calibration
+  autoCameraOffsetToggle = new ParamControlSP(
+    "AutoCameraOffset",
+    tr("Auto Camera Offset Calibration"),
+    tr("While driving, continuously learn the camera mount/lane-crown bias from lane lines and "
+       "write it into Camera Offset automatically (no restart needed, hot-applied in ~1s). "
+       "Step-limited to 2cm per update for safety."),
+    "");
+  list->addItem(autoCameraOffsetToggle);
+
   sunnypilotScroller = new ScrollViewSP(list, this);
   vlayout->addWidget(sunnypilotScroller);
 

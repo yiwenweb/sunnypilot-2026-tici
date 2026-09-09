@@ -8,9 +8,31 @@
 #include "openpilot/selfdrive/ui/sunnypilot/qt/offroad/settings/sunnylink_panel.h"
 
 #include "openpilot/common/watchdog.h"
+#include "openpilot/selfdrive/ui/qt/offroad/onboarding.h"
+#include "openpilot/selfdrive/ui/qt/widgets/input.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/util.h"
 #include "openpilot/selfdrive/ui/sunnypilot/qt/widgets/controls.h"
 #include <QtConcurrent>
+
+namespace {
+
+constexpr const char *SUNNYLINK_CONSENT_VERSION = "1.0";
+
+// Modal wrapper around the onboarding SunnylinkConsentPage. Shown the first
+// time sunnylink is toggled on from settings (matches the 2026 raylib UI,
+// layouts/settings/sunnylink.py _sunnylink_toggle_callback).
+class SunnylinkConsentDialog : public DialogBase {
+public:
+  explicit SunnylinkConsentDialog(QWidget *parent) : DialogBase(parent) {
+    auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    auto *consent_page = new SunnylinkConsentPage(this);
+    layout->addWidget(consent_page);
+    connect(consent_page, &SunnylinkConsentPage::completedConsent, this, &QDialog::accept);
+  }
+};
+
+}  // namespace
 
 SunnylinkPanel::SunnylinkPanel(QWidget *parent) : QFrame(parent) {
   main_layout = new QStackedLayout(this);
@@ -101,6 +123,19 @@ SunnylinkPanel::SunnylinkPanel(QWidget *parent) : QFrame(parent) {
   });
 
   connect(sunnylinkEnabledBtn, &ParamControl::toggleFlipped, [=](bool enabled) {
+    // First-time enable requires sunnylink consent (matches the 2026 raylib UI)
+    if (enabled && params.get("CompletedSunnylinkConsentVersion") != SUNNYLINK_CONSENT_VERSION) {
+      // revert the toggle until consent is completed; the consent page's
+      // "Enable" button writes SunnylinkEnabled + consent version itself
+      params.putBool("SunnylinkEnabled", false);
+      sunnylinkEnabledBtn->refresh();
+
+      SunnylinkConsentDialog dlg(this);
+      dlg.exec();
+      updatePanel();
+      return;
+    }
+
     QString description;
     if (enabled) {
       description = "<font color='SeaGreen'>"+ tr("🎉Welcome back! We're excited to see you've enabled sunnylink again! 🚀")+ "</font>";

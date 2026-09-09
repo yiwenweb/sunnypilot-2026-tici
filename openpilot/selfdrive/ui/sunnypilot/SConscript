@@ -45,6 +45,7 @@ qt_src = [
   "sunnypilot/qt/onroad/buttons.cc",
   "sunnypilot/qt/onroad/developer_ui/developer_ui.cc",
   "sunnypilot/qt/onroad/hud.cc",
+  "sunnypilot/qt/onroad/lane_center_status.cc",
   "sunnypilot/qt/onroad/model.cc",
   "sunnypilot/qt/onroad/onroad_home.cc",
 ]

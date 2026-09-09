@@ -7,10 +7,12 @@
 
 #pragma once
 
+#include <QPainter>
 #include <QPixmap>
 
 #include "openpilot/common/util.h"
 #include "openpilot/selfdrive/ui/qt/onroad/annotated_camera.h"
+#include "openpilot/selfdrive/ui/sunnypilot/qt/onroad/lane_center_status.h"
 
 class AnnotatedCameraWidgetSP : public AnnotatedCameraWidget {
   Q_OBJECT
@@ -22,6 +24,7 @@ public:
 protected:
   void showEvent(QShowEvent *event) override;
   void hideEvent(QHideEvent* event) override;
+  void paintGL() override;
   void drawFadeOverlay(QPainter &p, const QRect &surface_rect) override;
 
 private:
@@ -30,4 +33,6 @@ private:
   // Fade in/out when engaged. ts=0.1, dt=1/UI_FREQ matches
   // AugmentedRoadViewSP._fade_alpha_filter in the raylib UI.
   FirstOrderFilter fade_alpha_filter{0.0f, 0.1f, 1.0f / UI_FREQ};
+
+  LaneCenterStatus lane_center_status;
 };

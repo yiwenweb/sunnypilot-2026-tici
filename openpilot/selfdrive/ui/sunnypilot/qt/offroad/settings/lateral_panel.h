@@ -44,6 +44,8 @@ private:
   PushButtonSP *laneChangeSettingsButton;
   LaneChangeSettings *laneChangeWidget = nullptr;
   NeuralNetworkLateralControl *nnlcToggle = nullptr;
+  ParamControlSP *laneCenterCorrectionToggle = nullptr;
+  ParamControlSP *autoCameraOffsetToggle = nullptr;
   BlinkerPauseLateralSettings *blinkerPauseLateralSettings = nullptr;
   ParamControl *torqueLateralControlToggle;
   PushButtonSP *torqueLateralControlSettingsButton;

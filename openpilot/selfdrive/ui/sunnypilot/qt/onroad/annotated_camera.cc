@@ -43,6 +43,15 @@ void AnnotatedCameraWidgetSP::drawFadeOverlay(QPainter &p, const QRect &surface_
 
 void AnnotatedCameraWidgetSP::updateState(const UIState &s) {
   AnnotatedCameraWidget::updateState(s);
+  lane_center_status.updateState(s);
+}
+
+void AnnotatedCameraWidgetSP::paintGL() {
+  AnnotatedCameraWidget::paintGL();
+
+  // Lane-center correction + camera offset HUD (2026 raylib UI feature).
+  QPainter painter(this);
+  lane_center_status.draw(painter, rect());
 }
 
 void AnnotatedCameraWidgetSP::showEvent(QShowEvent *event) {
