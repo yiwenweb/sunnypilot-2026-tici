@@ -319,8 +319,13 @@ class HardwareComma(HardwareBase):
       gov = 'ondemand' if powersave_enabled else 'performance'
       sudo_write(gov, f'/sys/devices/system/cpu/cpufreq/policy{n}/scaling_governor')
       if not powersave_enabled:
-        # cap max core freq to 1689 Mhz
-        sudo_write('1689600', f'/sys/devices/system/cpu/cpufreq/policy{n}/scaling_max_freq')
+        # no cap: run every core at its maximum hardware frequency
+        try:
+          with open(f'/sys/devices/system/cpu/cpufreq/policy{n}/cpuinfo_max_freq') as f:
+            hw_max = f.read().strip()
+        except Exception:
+          hw_max = '2803200' if n == '4' else '1766400'
+        sudo_write(hw_max, f'/sys/devices/system/cpu/cpufreq/policy{n}/scaling_max_freq')
 
     # *** IRQ config ***
 
