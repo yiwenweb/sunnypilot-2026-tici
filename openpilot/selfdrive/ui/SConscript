@@ -46,10 +46,14 @@ qt_src = ["main.cc", "ui.cc", "qt/sidebar.cc", "qt/body.cc",
           "qt/offroad/software_settings.cc", "qt/offroad/developer_panel.cc", "qt/offroad/onboarding.cc",
           "qt/offroad/driverview.cc", "qt/offroad/experimental_mode.cc", "qt/offroad/firehose.cc",
           "qt/onroad/onroad_home.cc", "qt/onroad/annotated_camera.cc", "qt/onroad/model.cc",
-          "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/driver_monitoring.cc", "qt/onroad/hud.cc",
-          # 超级视频：msm_vidc 硬编码推流（复用 loggerd 的 V4LEncoder，packet_callback 模式）
-          "../../system/loggerd/encoder/v4l_encoder.cc",
-          "../../system/loggerd/encoder/encoder.cc"] + sp_qt_src
+          "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/driver_monitoring.cc", "qt/onroad/hud.cc"] + sp_qt_src
+
+# 超级视频：msm_vidc 硬编码推流（复用 loggerd 的 V4LEncoder，packet_callback 模式）。
+# 这两个文件 loggerd 也在编译；这里用显式独立目标名，避免同一 target 在两个环境下重复定义。
+sv_encoder_objs = [
+  qt_env.Object("supervideo_v4l_encoder.o", "#openpilot/system/loggerd/encoder/v4l_encoder.cc"),
+  qt_env.Object("supervideo_encoder.o", "#openpilot/system/loggerd/encoder/encoder.cc"),
+]
 
 # build translation files
 with open(File("#openpilot/selfdrive/ui/translations/languages.json").abspath) as f:
@@ -96,7 +100,7 @@ qt_env.Depends(assets, _asset_deps + [lrelease] + [File(assets_src), File(transl
 asset_obj = qt_env.Object("assets", assets)
 
 # build main UI
-qt_env.Program("ui", qt_src + [asset_obj, "#third_party/qrcode/QrCode.cc"], LIBS=qt_libs)
+qt_env.Program("ui", qt_src + sv_encoder_objs + [asset_obj, "#third_party/qrcode/QrCode.cc"], LIBS=qt_libs)
 
 if GetOption('extras') and arch == "comma_arm64":
   # build installers (raylib)
