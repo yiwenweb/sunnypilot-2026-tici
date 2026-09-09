@@ -83,7 +83,7 @@ void SuperVideoStreamer::stopStreaming() {
   if (!streaming) return;
   frame_timer->stop();
   for (auto *c : clients) {
-    c->disconnectFromServer();
+    c->disconnectFromHost();
   }
   clients.clear();
   server->close();
