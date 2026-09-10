@@ -50,9 +50,13 @@ qt_src = ["main.cc", "ui.cc", "qt/sidebar.cc", "qt/body.cc",
 
 # 超级视频：msm_vidc 硬编码推流（复用 loggerd 的 V4LEncoder，packet_callback 模式）。
 # 这两个文件 loggerd 也在编译；这里用显式独立目标名，避免同一 target 在两个环境下重复定义。
+# CPPDEFINES=["NDEBUG"]：UI 进程绝不能因为 assert 被 abort（assert 不可 catch，一旦触发
+# openpilot 就会无限重启 UI，表现为整机卡死）。NDEBUG 让编进 UI 的这两个目标里所有 assert
+# 变成空操作，失败退化为 safe_ioctl 抛异常 -> 由 supervideo 的 try/catch 记录并禁用推流。
+# loggerd 自己那份仍带 assert，行为不受影响。
 sv_encoder_objs = [
-  qt_env.Object("supervideo_v4l_encoder.o", "#openpilot/system/loggerd/encoder/v4l_encoder.cc"),
-  qt_env.Object("supervideo_encoder.o", "#openpilot/system/loggerd/encoder/encoder.cc"),
+  qt_env.Object("supervideo_v4l_encoder.o", "#openpilot/system/loggerd/encoder/v4l_encoder.cc", CPPDEFINES=["NDEBUG"]),
+  qt_env.Object("supervideo_encoder.o", "#openpilot/system/loggerd/encoder/encoder.cc", CPPDEFINES=["NDEBUG"]),
 ]
 
 # build translation files

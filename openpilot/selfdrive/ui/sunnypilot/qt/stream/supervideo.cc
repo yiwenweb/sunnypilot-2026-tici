@@ -204,18 +204,24 @@ void SuperVideoStreamer::workerLoop() {
 void SuperVideoStreamer::openEncoder() {
   try {
     EncoderInfo info = {};
-    info.publish_name = "SuperVideoStream";
+    // 关键：publish_name 必须是 cereal 服务表里已有的名字。
+    // V4LEncoder 的基类构造里会执行 new PubMaster({publish_name})，而 PubMaster
+    // 内部第一句就是 assert(services.count(name) > 0) —— 传一个自造名字会直接
+    // SIGABRT 杀掉 UI 进程（assert 不可 catch），openpilot 随即无限重启 UI，
+    // 表现就是"一开开关整机卡死"。这里复用合法的 livestream 服务名；本类始终提供
+    // packet_callback，永远不会走 publisher_publish 路径，因此不会真的向该服务发布。
+    info.publish_name = "livestreamNarrowRoadEncodeData";
     info.filename = "supervideo.h264";
+    info.record = false;
     info.is_live = true;
     info.frame_width = STREAM_WIDTH;
     info.frame_height = STREAM_HEIGHT;
     info.fps = STREAM_FPS;
     info.get_settings = [](int) { return EncoderSettings::StreamEncoderSettings(); };
-    // 这些函数仅在 publisher_publish 路径使用；本类始终提供 packet_callback，
-    // 编码数据不会发布到 cereal（不污染行车记录）。
-    info.get_encode_data_func = &cereal::Event::Reader::getQNarrowRoadEncodeData;
-    info.set_encode_idx_func = &cereal::Event::Builder::setQNarrowRoadEncodeIdx;
-    info.init_encode_data_func = &cereal::Event::Builder::initQNarrowRoadEncodeData;
+    // 与 publish_name 保持一致（这三个函数仅在 publisher_publish 路径使用）
+    info.get_encode_data_func = &cereal::Event::Reader::getLivestreamNarrowRoadEncodeData;
+    info.set_encode_idx_func = &cereal::Event::Builder::setLivestreamNarrowRoadEncodeIdx;
+    info.init_encode_data_func = &cereal::Event::Builder::initLivestreamNarrowRoadEncodeData;
 
     encoder = new V4LEncoder(info, STREAM_WIDTH, STREAM_HEIGHT,
                              {.packet_callback = [this](uint8_t *d, size_t s, int64_t ts, bool config, bool key) {
