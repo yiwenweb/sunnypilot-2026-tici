@@ -91,10 +91,13 @@ private:
   V4LEncoder *encoder = nullptr;
   // NV12 缓冲池：USERPTR 模式 DMA 直接读这块内存，硬件归还前绝不能复用。
   // 池大小 = BUF_IN_COUNT(9)，nv12_busy 由 dequeue 线程的 input_done_callback 释放。
+  // 尺寸必须取驱动上报的 sizeimage（V4LEncoder::input_buf_size），
+  // 自己算的 W*H*3/2 会被 VIDIOC_QBUF 以 EINVAL 拒绝。
   VisionBuf nv12_bufs[BUF_IN_COUNT];
   std::atomic<bool> nv12_busy[BUF_IN_COUNT];
   std::atomic<int> in_flight{0};         // 已喂硬件未回收的输入缓冲数（dequeue 线程递减）
   bool nv12_allocated = false;           // worker only
+  size_t nv12_alloc_size = 0;            // worker only：当前池的单块尺寸
 
   // UI 线程抓帧耗时统计（仅 UI 线程访问），用于自适应降速保护事件循环
   double grab_ema_ms = 0;

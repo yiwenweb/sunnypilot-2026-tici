@@ -1,4 +1,5 @@
 #include <cassert>
+#include <exception>
 #include <string>
 #include <sys/ioctl.h>
 #include <poll.h>
@@ -88,6 +89,7 @@ void V4LEncoder::dequeue_handler(V4LEncoder *e) {
   kj::Array<capnp::byte> header;
 
   while (!exit) {
+   try {
     int rc = poll(&pfd, 1, 1000);
     if (rc < 0) {
       if (errno != EINTR) {
@@ -149,6 +151,11 @@ void V4LEncoder::dequeue_handler(V4LEncoder *e) {
       if (input_buf && e->input_done_callback) e->input_done_callback(input_buf);
       e->free_buf_in.push(index);
     }
+   } catch (const std::exception &ex) {
+      // 异常逃出 std::thread = std::terminate = 整个进程 abort。这里兜住并收尾退出。
+      LOGE("%s dequeue failed: %s", e->encoder_info.publish_name, ex.what());
+      exit = true;
+   }
   }
 }
 
@@ -213,6 +220,11 @@ V4LEncoder::V4LEncoder(const EncoderInfo &encoder_info, int in_width, int in_hei
     }
   };
   util::safe_ioctl(fd, VIDIOC_S_FMT, &fmt_in, "VIDIOC_S_FMT failed");
+
+  // msm_vidc 用 sizeimage 校验输入缓冲：QBUF 的 plane.length 必须 >= sizeimage，
+  // 否则 EINVAL。它不等于 width*height*3/2（1280x640 时 2035712 vs 1228800），
+  // 调用方必须按这个值分配输入缓冲。
+  input_buf_size = fmt_in.fmt.pix_mp.plane_fmt[0].sizeimage;
 
   LOGD("in buffer size %d, out buffer size %d",
     fmt_in.fmt.pix_mp.plane_fmt[0].sizeimage,

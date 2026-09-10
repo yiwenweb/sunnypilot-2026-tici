@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <functional>
 
 #include "common/queue.h"
@@ -28,6 +29,12 @@ public:
   void encoder_close();
   void set_bitrate(int bitrate);
   void request_keyframe();
+
+  // 驱动（msm_vidc）为 OUTPUT(NV12) 队列上报的 sizeimage。喂帧缓冲的
+  // plane.length 必须 >= 这个值，否则 VIDIOC_QBUF 返回 EINVAL。
+  // 注意它并不等于 width*height*3/2（1280x640 时是 2035712 而不是 1228800），
+  // 所以调用方必须按这个值分配输入缓冲，不能自己算。
+  size_t input_buf_size = 0;
 
 private:
   int fd;

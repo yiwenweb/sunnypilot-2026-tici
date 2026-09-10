@@ -18,7 +18,9 @@ namespace {
   constexpr int STREAM_FPS = 24;         // UI 线程只承担 grab；24fps 给事件循环留足余量
   constexpr int STREAM_WIDTH = 1280;     // VENUS 要求宽高 128 对齐：1280/640 均满足
   constexpr int STREAM_HEIGHT = 640;
-  constexpr int NV12_SIZE = STREAM_WIDTH * STREAM_HEIGHT * 3 / 2;
+  // NV12 输入缓冲的真实尺寸由驱动决定（V4LEncoder::input_buf_size）。
+  // 这里只是查询失败时的兜底：给足余量（必须 > 驱动 sizeimage）。
+  constexpr size_t NV12_FALLBACK_SIZE = (size_t)STREAM_WIDTH * STREAM_HEIGHT * 3;
   constexpr int MAX_IN_FLIGHT = 6;       // 输入缓冲 9，留余量
   const char *VENC_DEVICE = "/dev/v4l/by-path/platform-aa00000.qcom_vidc-video-index1";
 }
@@ -84,6 +86,8 @@ void SuperVideoStreamer::startStreaming() {
   }
   streaming = true;
   in_flight = 0;
+  grab_ema_ms = 0;
+  frame_timer->setInterval(1000 / STREAM_FPS);   // 复位上次的自适应降速
   want_run = true;                       // 编码器由 worker 线程异步打开（阻塞 ioctl 不碰 UI）
   if (!worker_started) {
     quit_worker = false;
@@ -112,8 +116,11 @@ void SuperVideoStreamer::stopStreaming() {
 }
 
 void SuperVideoStreamer::onEncoderFailed() {
-  LOGE("supervideo: encoder open failed in worker thread, disabling streaming");
+  LOGE("supervideo: encoder failed, disabling streaming");
   stopStreaming();
+  // 把参数写回 0：否则 pollParam 会读到文件里仍是 1 而每秒重试一次，
+  // 用户也看不到开关已经失效
+  if (enabled) params.putBool("SuperVideoStream", false);
   enabled = false;
 }
 
@@ -124,7 +131,12 @@ void SuperVideoStreamer::workerLoop() {
     const bool run = want_run;
 
     if (run && !encoder) {
-      openEncoder();                     // 阻塞 ioctl 在 worker，UI 线程不受影响
+      try {
+        openEncoder();                     // 阻塞 ioctl 在 worker，UI 线程不受影响
+      } catch (const std::exception &e) {
+        LOGE("supervideo: openEncoder threw: %s", e.what());
+        closeEncoder();
+      }
       if (!encoder) {
         QMetaObject::invokeMethod(this, "onEncoderFailed", Qt::QueuedConnection);
         // 等状态变化再重试，避免疯狂重开 msm_vidc 会话
@@ -158,103 +170,146 @@ void SuperVideoStreamer::workerLoop() {
       frame_q.pop_front();
     }
 
-    // 缩放 + RGB32 统一（QImage 隐式共享，worker 独占此副本）
-    QImage scaled = img.scaled(STREAM_WIDTH, STREAM_HEIGHT, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-    if (scaled.isNull()) continue;
-    if (scaled.format() != QImage::Format_ARGB32 && scaled.format() != QImage::Format_RGB32) {
-      scaled = scaled.convertToFormat(QImage::Format_RGB32);
-    }
-
-    if (in_flight >= MAX_IN_FLIGHT) continue;  // 硬件积压，丢帧
-
-    // 从池里挑一个硬件已归还的 NV12 缓冲（USERPTR 交给 DMA 后未归前绝不能覆写）
-    int slot = -1;
-    for (int i = 0; i < BUF_IN_COUNT; ++i) {
-      bool expected = false;   // compare_exchange 需要左值 expected
-      if (nv12_busy[i].compare_exchange_strong(expected, true)) { slot = i; break; }
-    }
-    if (slot < 0) continue;                    // 理论不发生（MAX_IN_FLIGHT < BUF_IN_COUNT），防御
-
-    VisionBuf &vb = nv12_bufs[slot];
-    rgbToNv12(scaled, (uint8_t *)vb.addr, STREAM_WIDTH, STREAM_HEIGHT);
-    vb.width = STREAM_WIDTH;
-    vb.height = STREAM_HEIGHT;
-    vb.stride = STREAM_WIDTH;
-
-    int64_t ts_eof = nanos_since_boot();
-    VisionIpcBufExtra extra = {};
-    extra.timestamp_eof = ts_eof;
-    in_flight++;
-    {
-      std::lock_guard<std::mutex> lk(enc_mutex);
-      if (encoder) {
-        encoder->encode_frame(&vb, &extra);
-      } else {
-        nv12_busy[slot] = false;               // 竞态兜底：encoder 正在被关闭
-        in_flight--;
+    // 单帧处理全程兜异常：异常逃出 std::thread 会 std::terminate 掉整个 ui 进程，
+    // openpilot 再无限重启 ui = 用户看到的"卡逗号"。宁可关掉流也不能崩。
+    try {
+      // 缩放 + RGB32 统一（QImage 隐式共享，worker 独占此副本）
+      QImage scaled = img.scaled(STREAM_WIDTH, STREAM_HEIGHT, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+      if (scaled.isNull()) continue;
+      if (scaled.format() != QImage::Format_ARGB32 && scaled.format() != QImage::Format_RGB32) {
+        scaled = scaled.convertToFormat(QImage::Format_RGB32);
       }
+
+      if (in_flight >= MAX_IN_FLIGHT) continue;  // 硬件积压，丢帧
+
+      // 从池里挑一个硬件已归还的 NV12 缓冲（USERPTR 交给 DMA 后未归前绝不能覆写）
+      int slot = -1;
+      for (int i = 0; i < BUF_IN_COUNT; ++i) {
+        bool expected = false;   // compare_exchange 需要左值 expected
+        if (nv12_busy[i].compare_exchange_strong(expected, true)) { slot = i; break; }
+      }
+      if (slot < 0) continue;                    // 理论不发生（MAX_IN_FLIGHT < BUF_IN_COUNT），防御
+
+      VisionBuf &vb = nv12_bufs[slot];
+      rgbToNv12(scaled, (uint8_t *)vb.addr, STREAM_WIDTH, STREAM_HEIGHT);
+      vb.width = STREAM_WIDTH;
+      vb.height = STREAM_HEIGHT;
+      vb.stride = STREAM_WIDTH;
+
+      int64_t ts_eof = nanos_since_boot();
+      VisionIpcBufExtra extra = {};
+      extra.timestamp_eof = ts_eof;
+      in_flight++;
+      {
+        std::lock_guard<std::mutex> lk(enc_mutex);
+        if (encoder) {
+          // ION 缓冲是 CACHED 的，交给硬件前必须把 CPU 写入刷到内存
+          vb.sync(VISIONBUF_SYNC_TO_DEVICE);
+          encoder->encode_frame(&vb, &extra);
+        } else {
+          nv12_busy[slot] = false;               // 竞态兜底：encoder 正在被关闭
+          in_flight--;
+        }
+      }
+    } catch (const std::exception &e) {
+      LOGE("supervideo: encode frame failed: %s (streaming disabled)", e.what());
+      closeEncoder();
+      in_flight = 0;
+      for (auto &busy : nv12_busy) busy = false;
+      // 不自动重开，避免异常循环；同时把参数关掉，用户重新开关才会再试
+      QMetaObject::invokeMethod(this, "onEncoderFailed", Qt::QueuedConnection);
+      continue;
     }
   }
 
   // 退出：编码器必须在 worker 自己关（close 里的 ioctl 不上 UI 线程）
-  std::lock_guard<std::mutex> lk(enc_mutex);
   closeEncoder();
 }
 
 void SuperVideoStreamer::openEncoder() {
+  EncoderInfo info = {};
+  // 关键：publish_name 必须是 cereal 服务表里已有的名字。
+  // V4LEncoder 的基类构造里会执行 new PubMaster({publish_name})，而 PubMaster
+  // 内部第一句就是 assert(services.count(name) > 0) —— 传一个自造名字会直接
+  // SIGABRT 杀掉 UI 进程（assert 不可 catch），openpilot 随即无限重启 UI，
+  // 表现就是"一开开关整机卡死"。这里复用合法的 livestream 服务名；本类始终提供
+  // packet_callback，永远不会走 publisher_publish 路径，因此不会真的向该服务发布。
+  info.publish_name = "livestreamNarrowRoadEncodeData";
+  info.filename = "supervideo.h264";
+  info.record = false;
+  info.is_live = true;
+  info.frame_width = STREAM_WIDTH;
+  info.frame_height = STREAM_HEIGHT;
+  info.fps = STREAM_FPS;
+  info.get_settings = [](int) { return EncoderSettings::StreamEncoderSettings(); };
+  // 与 publish_name 保持一致（这三个函数仅在 publisher_publish 路径使用）
+  info.get_encode_data_func = &cereal::Event::Reader::getLivestreamNarrowRoadEncodeData;
+  info.set_encode_idx_func = &cereal::Event::Builder::setLivestreamNarrowRoadEncodeIdx;
+  info.init_encode_data_func = &cereal::Event::Builder::initLivestreamNarrowRoadEncodeData;
+
+  V4LEncoder *enc = nullptr;
   try {
-    EncoderInfo info = {};
-    // 关键：publish_name 必须是 cereal 服务表里已有的名字。
-    // V4LEncoder 的基类构造里会执行 new PubMaster({publish_name})，而 PubMaster
-    // 内部第一句就是 assert(services.count(name) > 0) —— 传一个自造名字会直接
-    // SIGABRT 杀掉 UI 进程（assert 不可 catch），openpilot 随即无限重启 UI，
-    // 表现就是"一开开关整机卡死"。这里复用合法的 livestream 服务名；本类始终提供
-    // packet_callback，永远不会走 publisher_publish 路径，因此不会真的向该服务发布。
-    info.publish_name = "livestreamNarrowRoadEncodeData";
-    info.filename = "supervideo.h264";
-    info.record = false;
-    info.is_live = true;
-    info.frame_width = STREAM_WIDTH;
-    info.frame_height = STREAM_HEIGHT;
-    info.fps = STREAM_FPS;
-    info.get_settings = [](int) { return EncoderSettings::StreamEncoderSettings(); };
-    // 与 publish_name 保持一致（这三个函数仅在 publisher_publish 路径使用）
-    info.get_encode_data_func = &cereal::Event::Reader::getLivestreamNarrowRoadEncodeData;
-    info.set_encode_idx_func = &cereal::Event::Builder::setLivestreamNarrowRoadEncodeIdx;
-    info.init_encode_data_func = &cereal::Event::Builder::initLivestreamNarrowRoadEncodeData;
+    enc = new V4LEncoder(info, STREAM_WIDTH, STREAM_HEIGHT,
+                         {.packet_callback = [this](uint8_t *d, size_t s, int64_t ts, bool config, bool key) {
+                            packetHandler(d, s, ts, config, key);
+                          },
+                          .input_format = V4L2_PIX_FMT_NV12,
+                          .input_done_callback = [this](VisionBuf *b) {
+                            // dequeue 线程：硬件已归还该输入缓冲，标记可复用
+                            for (int i = 0; i < BUF_IN_COUNT; ++i) {
+                              if (&nv12_bufs[i] == b) { nv12_busy[i] = false; break; }
+                            }
+                            in_flight--;
+                          },
+                          .max_performance = true});
 
-    encoder = new V4LEncoder(info, STREAM_WIDTH, STREAM_HEIGHT,
-                             {.packet_callback = [this](uint8_t *d, size_t s, int64_t ts, bool config, bool key) {
-                                packetHandler(d, s, ts, config, key);
-                              },
-                              .input_format = V4L2_PIX_FMT_NV12,
-                              .input_done_callback = [this](VisionBuf *b) {
-                                // dequeue 线程：硬件已归还该输入缓冲，标记可复用
-                                for (int i = 0; i < BUF_IN_COUNT; ++i) {
-                                  if (&nv12_bufs[i] == b) { nv12_busy[i] = false; break; }
-                                }
-                                in_flight--;
-                              },
-                              .max_performance = true});
-    encoder->encoder_open();
-    encoder_ready = true;
+    // 必须在喂第一帧之前建池，且尺寸取驱动上报的 sizeimage：
+    // 1280x640 时驱动要 2035712，而 W*H*3/2 只有 1228800 —— 用后者会被
+    // VIDIOC_QBUF 以 EINVAL 拒绝，编码器状态不一致，随后 UI 进程 abort。
+    allocateNv12(enc->input_buf_size);
 
-    if (!nv12_allocated) {
-      for (auto &b : nv12_bufs) b.allocate(NV12_SIZE);
-      nv12_allocated = true;
-    }
+    enc->encoder_open();
   } catch (const std::exception &e) {
     LOGE("supervideo: encoder init failed: %s", e.what());
-    closeEncoder();
+    delete enc;                          // 构造期抛异常时 enc 仍为 nullptr
+    enc = nullptr;
   }
+
+  if (enc == nullptr) return;
+  {
+    std::lock_guard<std::mutex> lk(enc_mutex);
+    encoder = enc;
+  }
+  encoder_ready = true;
+}
+
+void SuperVideoStreamer::allocateNv12(size_t driver_size) {
+  const size_t want = (driver_size > 0) ? driver_size : NV12_FALLBACK_SIZE;
+  if (nv12_allocated && want == nv12_alloc_size) return;
+
+  if (nv12_allocated) {
+    for (auto &b : nv12_bufs) b.free();
+    nv12_allocated = false;
+  }
+  for (auto &b : nv12_bufs) b.allocate(want);
+  nv12_allocated = true;
+  nv12_alloc_size = want;
+  LOGW("supervideo: nv12 pool %zu bytes x %d (driver sizeimage %zu)",
+       want, BUF_IN_COUNT, driver_size);
 }
 
 void SuperVideoStreamer::closeEncoder() {
-  encoder_ready = false;
-  if (encoder) {
-    encoder->encoder_close();
-    delete encoder;
+  V4LEncoder *enc = nullptr;
+  {
+    std::lock_guard<std::mutex> lk(enc_mutex);
+    encoder_ready = false;
+    enc = encoder;
     encoder = nullptr;
+  }
+  // 关闭的 ioctl 可能阻塞（等硬件归还缓冲），所以放在锁外
+  if (enc) {
+    enc->encoder_close();
+    delete enc;
   }
 }
 
@@ -272,14 +327,17 @@ void SuperVideoStreamer::captureFrame() {
   QImage img = pm.toImage();
   if (img.isNull()) return;
 
-  // UI 线程预算保护：grab 耗时 EMA 超过间隔的 60% 就自动降速（下限 ~10fps），
-  // 宁可流帧率低一点，也绝不让抓帧拖死 UI 事件循环
+  // UI 线程预算保护：grab 耗时 EMA 超过间隔的 60% 就自动降速（下限 ~8fps），
+  // 抓到快了再逐步提速回来（AIMD）。宁可流帧率低一点，也绝不让抓帧拖死 UI 事件循环。
   double ms = (double)t.elapsed();
   grab_ema_ms = (grab_ema_ms == 0) ? ms : (grab_ema_ms * 0.9 + ms * 0.1);
+  const int base = 1000 / STREAM_FPS;
   int cur = frame_timer->interval();
-  if (grab_ema_ms > cur * 0.6 && cur < 100) {
-    frame_timer->setInterval(std::min(100, cur + 8));
+  if (grab_ema_ms > cur * 0.6 && cur < 120) {
+    frame_timer->setInterval(std::min(120, cur + 8));
     LOGW("supervideo: grab %.1fms, back off to %dms/frame", grab_ema_ms, frame_timer->interval());
+  } else if (grab_ema_ms < cur * 0.35 && cur > base) {
+    frame_timer->setInterval(std::max(base, cur - 4));
   }
 
   {
