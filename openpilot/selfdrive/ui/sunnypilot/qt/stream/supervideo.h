@@ -59,6 +59,7 @@ private:
   void workerLoop();                     // worker 线程主循环
   void openEncoder();                    // worker only（阻塞 ioctl）
   void closeEncoder();                   // worker only
+  void allocateNv12(size_t driver_size); // worker only：按驱动 sizeimage 建池
   static void rgbToNv12(const QImage &img, uint8_t *nv12, int width, int height);
   void packetHandler(uint8_t *data, size_t size, int64_t ts, bool config, bool keyframe);
 
