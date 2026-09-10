@@ -170,7 +170,8 @@ void SuperVideoStreamer::workerLoop() {
     // 从池里挑一个硬件已归还的 NV12 缓冲（USERPTR 交给 DMA 后未归前绝不能覆写）
     int slot = -1;
     for (int i = 0; i < BUF_IN_COUNT; ++i) {
-      if (!nv12_busy[i] && nv12_busy[i].compare_exchange_strong(false, true)) { slot = i; break; }
+      bool expected = false;   // compare_exchange 需要左值 expected
+      if (nv12_busy[i].compare_exchange_strong(expected, true)) { slot = i; break; }
     }
     if (slot < 0) continue;                    // 理论不发生（MAX_IN_FLIGHT < BUF_IN_COUNT），防御
 
