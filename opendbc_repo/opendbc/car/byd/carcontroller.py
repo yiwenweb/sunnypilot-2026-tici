@@ -29,6 +29,7 @@ class CarController(CarControllerBase, MadsCarController):
     self.frame = 0
     self.last_steer_frame = 0
     self.last_acc_frame = 0
+    self.last_fake318_frame = -10  # 首帧即发 fake318
 
     self.apply_torque_last = 0
 
@@ -435,18 +436,26 @@ class CarController(CarControllerBase, MadsCarController):
       self.lkas_active_last = self.lkas_active
 
       self.mpc_lkas_counter = int(self.mpc_lkas_counter + 1) & 0xF
-      self.eps_fake318_counter = int(self.eps_fake318_counter + 1) & 0xF
       self.last_steer_frame = self.frame
 
       # send steering command, op to esc
       can_sends.append(bydcan.create_steering_control(self.packer, self.CP, CS.cam_lkas,
           self.apply_torque_last, self.lkas_req_prepare, self.lkas_active, CC.hudControl, self.mpc_lkas_counter))
 
-      # Send fake 0x318 (EPS->MPC) to trick MPC into thinking EPS is executing MPC's commands.
-      # Without this, MPC detects conflict and may cancel LKAS or generate DTC.
+    # Send fake 0x318 (EPS->MPC) to trick MPC into thinking EPS is executing MPC's commands.
+    # Without this, MPC detects conflict and may cancel LKAS or generate DTC.
+    # 20260917 P0 锁死修复: fake318 必须保持 50Hz 独立门控, 不能挂在 STEER_STEP(1=100Hz)下!
+    #   门总 sendcan 无 792(纯透传原厂 50Hz EPS 318); create_fake_318 的 Counter 透传原厂
+    #   esc_msg["Counter"](50Hz 步进)。STEER_STEP=1 后若每帧发 -> 100Hz 发送 + 50Hz counter
+    #   -> 每两帧 counter 重复 -> 摄像头/MPC 判 792 协议异常 -> LKAS Fault 锁死(新车日志实证:
+    #   seg2 前130s正常, 133s起 LKAS Fault 全程, 790/fake318 均为100Hz, fake318 counter 交替
+    #   +0/+1)。独立 50Hz 门控后发送与 counter 同频, 复刻原厂时序。
+    if (self.frame + 1 - self.last_fake318_frame) >= 2:
       can_sends.append(bydcan.create_fake_318(self.packer, self.CP, CS.esc_eps,
                                               CS.mpc_laks_output, CS.mpc_laks_reqprepare, CS.mpc_laks_active,
                                               True, self.eps_fake318_counter))
+      self.eps_fake318_counter = int(self.eps_fake318_counter + 1) & 0xF
+      self.last_fake318_frame = self.frame
 
     if (self.frame + 1 - self.last_acc_frame) >= CarControllerParams.ACC_STEP:
       # 更新俯仰角滤波器（用于坡度补偿）

@@ -20,8 +20,8 @@ class CarControllerParams:
 
   # --- 低速扭矩上限 (默认关闭) ---
   # 历史: 曾以为低速大扭矩持续导致 EPS 锁死, 加了低速封顶。但取证(byd_field_diff)证明
-  # 真正根因是 LKAS_Config=3 vs 门总=1 (见 bydcan.py)。门总在低速/对抗/打死方向下满扭矩
-  # 也不锁, 说明扭矩大小不是根因。故关闭封顶, 恢复满扭矩力气 (对齐门总"任何情况都有力")。
+  # 扭矩大小不是根因 (20260917 门总全量复核 LKAS_Config 恒=3 为正常值, 见 bydcan.py)。
+  # 门总在低速/对抗/打死方向下满扭矩也不锁, 故关闭封顶, 恢复满扭矩力气 (对齐门总"任何情况都有力")。
   USE_LOWSPEED_TORQUE_LIMIT = False
   LOWSPEED_TQ_BP = [0.83, 1.4, 2.8]      # m/s  (≈3, 5, 10 km/h) [保留参数, 未启用]
   LOWSPEED_TQ_V  = [150, 170, STEER_MAX]
