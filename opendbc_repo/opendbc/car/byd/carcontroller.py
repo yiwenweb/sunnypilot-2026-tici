@@ -505,6 +505,11 @@ class CarController(CarControllerBase, MadsCarController):
         if self.speed_hyst_upper and v_cruise < v_ego < v_cruise + HYSTERESIS * 2:
           # 滞环区间：限制减速度，让自然滑行
           accel = max(accel, -0.3)  # 最多轻减速
+
+        # P1 速率限制 (20260917): 814 AccelCmd 相邻帧变化率 ≤ ±0.5 m/s²/帧 (50Hz→等效25 m/s³)。
+        #   门总实证: engage 首帧从摄像头透传值平滑延续(522次 mean≈-0.07, 无跳变);
+        #   此限制把开启纵向即满刹从首帧-2.1 变成 5 帧渐进, 与门总体感一致, 且不挡正常跟车。
+        accel = float(np.clip(accel, self.apply_accel_last - 0.5, self.apply_accel_last + 0.5))
         
       if CC.longActive:
         stopping = CC.actuators.longControlState == LongCtrlState.stopping
@@ -520,6 +525,10 @@ class CarController(CarControllerBase, MadsCarController):
           self.sss = 0
 
         elif running:
+          self.rfss = 0
+          self.sss = 0
+
+        else:  # lcs == off (激活边界错位窗口): 只复位握手位, 不归零 accel (门总实证纯透传)
           self.rfss = 0
           self.sss = 0
 

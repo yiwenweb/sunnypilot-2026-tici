@@ -34,9 +34,9 @@ static uint32_t byd_compute_checksum(const CANPacket_t *msg) { UNUSED(msg); retu
 
 static const TorqueSteeringLimits BYD_STEERING_LIMITS = {
   .max_torque = 300,       // 门总 0.98 confirmed working max; 897 rejected by EPS (TorqueFailed)
-  .max_rate_up = 18,       // 20260720 16->18: 门总23接管段全量实测 上升rate=18(p99=max=18). 须与Python
-  .max_rate_down = 18,     //   STEER_DELTA_UP/DOWN=18 匹配, 否则Python发18被panda(16)拦丢帧. 收力(向0)
-                           //   不受此限(lowest_allowed=-rate_up, 收到0>=-18放行, SOFT收力54仍OK)。
+  .max_rate_up = 16,       // 20260917 全量复核: 门总 00000006 全量 227,811 帧相邻帧差分 -> ±16 硬边界(17/18 仅 3/2 帧)
+  .max_rate_down = 16,     //   须与 Python STEER_DELTA_UP/DOWN=16 匹配, 两者一致不丢帧。
+                           //   收力(向0)不受此限(lowest_allowed=-rate_up, 收到0>=-16放行, SOFT收力54仍OK)。
   .max_rt_delta = 243,
   .type = TorqueMotorLimited,
   .max_torque_error = 150, // BYD EPS has significant motor torque reporting lag; 50 caused

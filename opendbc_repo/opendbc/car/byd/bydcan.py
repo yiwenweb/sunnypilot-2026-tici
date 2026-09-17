@@ -201,7 +201,9 @@ def create_fake_318(packer, CP, esc_msg: dict, faketorque, laks_reqprepare, laks
     # 门总 0.98: fake counter == real EPS counter frame-for-frame (3002/3002), i.e. the
     # fake 318 is a byte-faithful relay of the real EPS 318 onto the MPC bus. Using our own
     # counter here would desync from the real EPS stream the MPC also partially sees.
-    values["ReportHandsNotOnSteeringWheel"] = 0
+    # P2 透传 (20260917): 门总真实 EPS 792 ReportHandsNotOnSteeringWheel(bit21) 恒 1(全量 114,127 帧),
+    #   硬编码 0 会向摄像头谎报"手已离盘"。与上面的 byte-faithful relay 注释一致, 透传真实值。
+    values["ReportHandsNotOnSteeringWheel"] = esc_msg["ReportHandsNotOnSteeringWheel"]
     values["Counter"] = esc_msg["Counter"]
 
     data = packer.make_can_msg("ACC_EPS_STATE", CanBus.MPC, values)[1]
