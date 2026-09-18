@@ -450,7 +450,7 @@ class CarController(CarControllerBase, MadsCarController):
     #   -> 每两帧 counter 重复 -> 摄像头/MPC 判 792 协议异常 -> LKAS Fault 锁死(新车日志实证:
     #   seg2 前130s正常, 133s起 LKAS Fault 全程, 790/fake318 均为100Hz, fake318 counter 交替
     #   +0/+1)。独立 50Hz 门控后发送与 counter 同频, 复刻原厂时序。
-    if (self.frame + 1 - self.last_fake318_frame) >= 2:
+    if (self.frame - self.last_fake318_frame) >= 2:
       can_sends.append(bydcan.create_fake_318(self.packer, self.CP, CS.esc_eps,
                                               CS.mpc_laks_output, CS.mpc_laks_reqprepare, CS.mpc_laks_active,
                                               True, self.eps_fake318_counter))
