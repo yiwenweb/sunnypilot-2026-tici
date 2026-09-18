@@ -153,7 +153,11 @@ static bool byd_tx_hook(const CANPacket_t *msg) {
       tx = false;
     }
     // Mark OP steering active (aligned with 门总 0.98: only when torque-check passes)
-    if (tx) {
+    // 20260918 P0 启动锁死修复: 仅 Act=1(OP 真接管)才标记 steering active。
+    // 之前无条件置位 -> OP 未接管(Act=0)也 active -> fwd_hook 无条件拦 MPC 790
+    // -> EPS 原厂命令流断供 -> 上电即锁死 (00000041 实证 can 790 src=0=0)。
+    // 门总实证: can 790 src=0 恒有 50Hz MPC 790 透传, EPS 从不缺流。
+    if (tx && steer_req) {
       byd_op_steering_active = true;
       byd_op_steering_ts = microsecond_timer_get();
     }
@@ -214,7 +218,10 @@ static bool byd_fwd_hook(int bus_num, int addr) {
   // 连续 counter 报文组, 避免双源 counter 冲突导致车机 ACC 报错。OP 停发 100ms 超时后自动恢复
   // 全透传 (byd_op_acc_active 超时清零), 保证异常/退出时原厂 ACC/AEB 立即接管。
   if (bus_num == 2) {
-    if (addr == BYD_ACC_MPC_STATE) {
+    // 20260918 P0 启动锁死修复: 只有 OP 真接管中(发 Act=1 的 790)才拦 MPC 790;
+    // 启动/未接管必须透传原厂 MPC 790 到 EPS, 否则 EPS 命令流断供 -> 上电即锁死。
+    // (00000041 实证: can 790 src=0=0 无 MPC 790; 门总 can 790 src=0=17904 恒透传)
+    if (byd_op_steering_active && (addr == BYD_ACC_MPC_STATE)) {
       return true;
     }
     if (byd_op_acc_active && ((addr == BYD_ACC_CMD) || (addr == BYD_ACC_HUD_ADAS) || (addr == BYD_ACC_AEB))) {
