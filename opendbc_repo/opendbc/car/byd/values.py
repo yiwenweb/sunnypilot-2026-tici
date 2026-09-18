@@ -10,18 +10,18 @@ Ecu = CarParams.Ecu
 
 class CarControllerParams:
   STEER_MAX = 300                 # 门总 0.98 confirmed working max; 897 is rejected by EPS (TorqueFailed)
-  # 20260917 全量复核: 门总 00000006 全量 227,811 帧相邻帧差分 -> active 期|Δ|=16 堆积(±16 各3704)、17/18 仅 3/2 帧。
-  # 【必须与panda匹配】panda byd.h max_rate_up/down 已同步改为16。
-  #   (此前若panda仍16而Python18 -> panda dist_to_meas_check拦截丢帧; 现两层已一致改为16。)
-  STEER_DELTA_UP = 16             # =panda max_rate_up(16), 门总全量实测硬边界
-  STEER_DELTA_DOWN = 16           # =panda max_rate_down(16), 门总全量实测硬边界
-  # 注: LOCK3 SOFT收力用 SOFT_COLLAPSE_RATE=54(>16), 但收力是"向0靠拢"(不越过0), panda收力方向
-  #   下限 lowest_allowed=-max_rate_up=-16, 收到0(>=-16)在允许内 -> panda放行, 不受16/帧限制。
+  # 16->18: 门总23接管段全量实测上升/下降rate=18(p99=max=18, analyze_men_rate.py)。
+  # 【必须与panda匹配】panda byd.h max_rate_up/down 已同步改为18; Python发18 <= panda18, 不被拦。
+  #   (若panda仍16而Python18 -> panda dist_to_meas_check拦截丢帧, 故两层必须一致改。已同改panda。)
+  STEER_DELTA_UP = 18             # =panda max_rate_up(18), 门总实测
+  STEER_DELTA_DOWN = 18           # =panda max_rate_down(18), 门总实测
+  # 注: LOCK3 SOFT收力用 SOFT_COLLAPSE_RATE=54(>18), 但收力是"向0靠拢"(不越过0), panda收力方向
+  #   下限 lowest_allowed=-max_rate_up=-18, 收到0(>=-18)在允许内 -> panda放行, 不受18/帧限制。
 
   # --- 低速扭矩上限 (默认关闭) ---
   # 历史: 曾以为低速大扭矩持续导致 EPS 锁死, 加了低速封顶。但取证(byd_field_diff)证明
-  # 扭矩大小不是根因 (20260917 门总全量复核 LKAS_Config 恒=3 为正常值, 见 bydcan.py)。
-  # 门总在低速/对抗/打死方向下满扭矩也不锁, 故关闭封顶, 恢复满扭矩力气 (对齐门总"任何情况都有力")。
+  # 真正根因是 LKAS_Config=3 vs 门总=1 (见 bydcan.py)。门总在低速/对抗/打死方向下满扭矩
+  # 也不锁, 说明扭矩大小不是根因。故关闭封顶, 恢复满扭矩力气 (对齐门总"任何情况都有力")。
   USE_LOWSPEED_TORQUE_LIMIT = False
   LOWSPEED_TQ_BP = [0.83, 1.4, 2.8]      # m/s  (≈3, 5, 10 km/h) [保留参数, 未启用]
   LOWSPEED_TQ_V  = [150, 170, STEER_MAX]
@@ -62,18 +62,18 @@ class CarControllerParams:
   STEER_DRIVER_FACTOR = 1
   STEER_ERROR_MAX = 50            # match 0.98 reference
 
-  STEER_STEP = 1  # 100/1=100hz (门总 790 全量实测段级 100.00Hz, 227,811 帧)
+  STEER_STEP = 2  # 100/2=50hz
   # STEER_SOFTSTART_STEP: 重接管后扭矩上限每帧的爬升量。
   # 历史误判: 曾设 300(1帧到顶,等于禁用软起), 以为门总"立即满扭矩接管"。
   # 但 byd_men_reengage_ramp.py 实测门总重接管后是【慢软起】: 每帧步进≈16, 前几帧甚至为0,
   # 大对抗时 6-8 帧才爬到 ~36。300 的瞬间到顶正是 20260703 大对抗重接管锁死的根因之一。
-  # 改用 16 (= STEER_DELTA_UP), 与正常行驶上升速率统一。
-  STEER_SOFTSTART_STEP = 16
+  # 改用 18 (= STEER_DELTA_UP), 与正常行驶上升速率统一。
+  STEER_SOFTSTART_STEP = 18
 
   ACC_STEP = 2  # 50hz
 
-  ACCEL_MAX = 1.7   # 20260917 全量复核: 门总 814 全量 max=+1.65 → 收窄到 +1.7
-  ACCEL_MIN = -2.1  # 门总 814 全量 min=-2.05、≤-2.5 共 0 帧 → 收窄到 -2.1 (防"开启即满刹"过深)
+  ACCEL_MAX = 2.0
+  ACCEL_MIN = -3.5
 
   K_DASHSPEED = 0.072636  # 00000006实测值(中位数,n=29316样本,线性良好,各速度段偏差<0.1%)
                          # 分速度段验证: 10-40km/h=0.072642, 40-70km/h=0.072562
@@ -189,10 +189,10 @@ class CarControllerParams:
   LOCK3_DEADEND_RELEASE_FRAMES = 6   # 执行中遇0xFB(P=1+Cru=1)收力这么多帧仍不脱离 -> 放Act=0干净重握手
                                      # (门总执行中P=1≤6帧自落回; 超6帧判死胡同, 远小于25帧锁死红线)
   # LOCK3_SOFT_COLLAPSE_RATE: SOFT收力(P=1时把Out收到0)的每帧下降速率, 【只用于SOFT收力】,
-  # 正常行驶下降仍受 STEER_DELTA_DOWN=16 限制。
+  # 正常行驶下降仍受 STEER_DELTA_DOWN=18 限制。
   # 【门总23段全量实证】: 门总遇P=1需收力时, 单帧下降能到 54~77(中位54), 2帧从64收到0;
-  #   而正常行驶下降门总也≤16(收力放宽是特例)。收力快=OP更快停止和司机/EPS对抗=更安全方向。
-  # 【安全依据】: 下降(收力/让步)方向快 = OP需要让步时更快松手, 是偏安全的; 上升(出力)保持16不放宽。
+  #   而正常行驶下降门总也≤18(收力放宽是特例)。收力快=OP更快停止和司机/EPS对抗=更安全方向。
+  # 【安全依据】: 下降(收力/让步)方向快 = OP需要让步时更快松手, 是偏安全的; 上升(出力)保持18不放宽。
   #   门总实测能降63且驾驶平顺 -> EPS/车身受得住此下降速率。取54(门总收力中位)。
   LOCK3_SOFT_COLLAPSE_RATE = 54  # SOFT收力每帧下降上限(对齐门总收力中位54), 仅SOFT收力用, 快速让步
 
@@ -329,7 +329,7 @@ class BydPlatformConfig(PlatformConfig):
 class CAR(Platforms):
   BYD_TANG_DM = BydPlatformConfig(
     [BydCarDocs("BYD TANG DM")],
-    CarSpecs(mass=2526., wheelbase=2.820, steerRatio=19.0, centerToFrontRatio=0.44, tireStiffnessFactor=1.0),  # mass: 门总 carParams 实测 2526 (原 2250 低估 12.3%)
+    CarSpecs(mass=2250., wheelbase=2.820, steerRatio=19.0, centerToFrontRatio=0.44, tireStiffnessFactor=1.0),
   )
 
 

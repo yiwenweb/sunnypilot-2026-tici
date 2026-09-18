@@ -223,12 +223,6 @@ class CarState(CarStateBase, MadsCarState):
         ret.cruiseState.enabled = self.acc_state in (3, 5)
         ret.cruiseState.standstill = ret.standstill
         ret.cruiseState.speed = cp_cam.vl["ACC_HUD_ADAS"]["SetSpeed"] * CV.KPH_TO_MS
-        # P0 兜底 (20260917): 摄像头未激活(acc_state∉{3,5})时 813 SetSpeed=0(门总全量 51,882 帧)，
-        #   直接当目标速度 -> vTarget=0 -> 规划器满刹(ACCEL_MIN)。兜底: 未激活且 SetSpeed≈0 时
-        #   目标速度取当前车速, 防止任何路径(MADS/瞬态)下"开启纵向即 vTarget=0 急刹"。
-        #   门总铁证: st=3 时 SetSpeed=0 共 0 帧, 激活后 SetSpeed 恒为 30~60km/h, 兜底不影响正常跟车。
-        if self.acc_state not in (3, 5) and ret.cruiseState.speed < 0.5:
-            ret.cruiseState.speed = ret.vEgo
 
         # Note: some firmware versions have SteerWarning always asserted, so we ignore it for now
         # ret.steerFaultTemporary = bool((self.acc_state == 7) or self.eps_warning)

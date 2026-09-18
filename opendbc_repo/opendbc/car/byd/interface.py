@@ -78,8 +78,6 @@ class CarInterface(CarInterfaceBase):
             # NOTE: startingState/startAccel/stoppingDecelRate/vEgoStarting/vEgoStopping
             # 在2026版CarParams中已移入 deprecated group，顶层不可再赋值，已删除。
             
-            # 20260917 全量复核: 门总 carParams 全 38 段一致 stopAccel=-2.0 / delay=0.30 / kiV=[0.0]。
-            # 日志无 personality 字段, 三档统一为门总实测值 (原 -0.7/-0.4/-0.5 偏软 → 刹不住)。
             # 驾驶风格绑定（读取sunnypilot的LongitudinalPersonality参数）
             # 0=激进, 1=标准, 2=舒适
             try:
@@ -89,17 +87,17 @@ class CarInterface(CarInterfaceBase):
                 personality = 1  # 默认标准
             
             if personality == 0:  # 激进
-                ret.stopAccel = -2.0
-                ret.longitudinalActuatorDelay = 0.30
-                ret.longitudinalTuning.kiV = [0.0]
+                ret.stopAccel = -0.7
+                ret.longitudinalActuatorDelay = 0.4
+                ret.longitudinalTuning.kiV = [0.4]
             elif personality == 2:  # 舒适
-                ret.stopAccel = -2.0
-                ret.longitudinalActuatorDelay = 0.30
-                ret.longitudinalTuning.kiV = [0.0]
+                ret.stopAccel = -0.4
+                ret.longitudinalActuatorDelay = 0.6
+                ret.longitudinalTuning.kiV = [0.25]
             else:  # 标准（默认）
-                ret.stopAccel = -2.0
-                ret.longitudinalActuatorDelay = 0.30
-                ret.longitudinalTuning.kiV = [0.0]
+                ret.stopAccel = -0.5
+                ret.longitudinalActuatorDelay = 0.5
+                ret.longitudinalTuning.kiV = [0.3]
         else:
             ret.dashcamOnly = True
 

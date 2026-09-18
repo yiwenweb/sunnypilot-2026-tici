@@ -34,9 +34,9 @@ static uint32_t byd_compute_checksum(const CANPacket_t *msg) { UNUSED(msg); retu
 
 static const TorqueSteeringLimits BYD_STEERING_LIMITS = {
   .max_torque = 300,       // 门总 0.98 confirmed working max; 897 rejected by EPS (TorqueFailed)
-  .max_rate_up = 16,       // 20260917 全量复核: 门总 00000006 全量 227,811 帧相邻帧差分 -> ±16 硬边界(17/18 仅 3/2 帧)
-  .max_rate_down = 16,     //   须与 Python STEER_DELTA_UP/DOWN=16 匹配, 两者一致不丢帧。
-                           //   收力(向0)不受此限(lowest_allowed=-rate_up, 收到0>=-16放行, SOFT收力54仍OK)。
+  .max_rate_up = 18,       // 20260720 16->18: 门总23接管段全量实测 上升rate=18(p99=max=18). 须与Python
+  .max_rate_down = 18,     //   STEER_DELTA_UP/DOWN=18 匹配, 否则Python发18被panda(16)拦丢帧. 收力(向0)
+                           //   不受此限(lowest_allowed=-rate_up, 收到0>=-18放行, SOFT收力54仍OK)。
   .max_rt_delta = 243,
   .type = TorqueMotorLimited,
   .max_torque_error = 150, // BYD EPS has significant motor torque reporting lag; 50 caused
@@ -153,11 +153,7 @@ static bool byd_tx_hook(const CANPacket_t *msg) {
       tx = false;
     }
     // Mark OP steering active (aligned with 门总 0.98: only when torque-check passes)
-    // 20260918 P0 启动锁死修复: 仅 Act=1(OP 真接管)才标记 steering active。
-    // 之前无条件置位 -> OP 未接管(Act=0)也 active -> fwd_hook 无条件拦 MPC 790
-    // -> EPS 原厂命令流断供 -> 上电即锁死 (00000041 实证 can 790 src=0=0)。
-    // 门总实证: can 790 src=0 恒有 50Hz MPC 790 透传, EPS 从不缺流。
-    if (tx && steer_req) {
+    if (tx) {
       byd_op_steering_active = true;
       byd_op_steering_ts = microsecond_timer_get();
     }
@@ -218,10 +214,7 @@ static bool byd_fwd_hook(int bus_num, int addr) {
   // 连续 counter 报文组, 避免双源 counter 冲突导致车机 ACC 报错。OP 停发 100ms 超时后自动恢复
   // 全透传 (byd_op_acc_active 超时清零), 保证异常/退出时原厂 ACC/AEB 立即接管。
   if (bus_num == 2) {
-    // 20260918 P0 启动锁死修复: 只有 OP 真接管中(发 Act=1 的 790)才拦 MPC 790;
-    // 启动/未接管必须透传原厂 MPC 790 到 EPS, 否则 EPS 命令流断供 -> 上电即锁死。
-    // (00000041 实证: can 790 src=0=0 无 MPC 790; 门总 can 790 src=0=17904 恒透传)
-    if (byd_op_steering_active && (addr == BYD_ACC_MPC_STATE)) {
+    if (addr == BYD_ACC_MPC_STATE) {
       return true;
     }
     if (byd_op_acc_active && ((addr == BYD_ACC_CMD) || (addr == BYD_ACC_HUD_ADAS) || (addr == BYD_ACC_AEB))) {
